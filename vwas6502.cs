@@ -116,7 +116,7 @@ class VWas6502
         public AddressingMode mode;
     }
 
-    static OpCodeInfo[] opcodes = [
+    static readonly OpCodeInfo[] opcodes = [
         new OpCodeInfo { opcode=0x00, op=Operation.BRK, mode=AddressingMode.None },
         new OpCodeInfo { opcode=0x01, op=Operation.ORA, mode=AddressingMode.IndirectX },
         new OpCodeInfo { opcode=0x05, op=Operation.ORA, mode=AddressingMode.ZeroPage },
@@ -285,7 +285,7 @@ class VWas6502
         new OpCodeInfo { opcode=0xFE, op=Operation.INC, mode=AddressingMode.AbsoluteX },
     ];
 
-    static void Main(string[] args)
+    static void Main()
     {
         var pc = (ushort?)null;
         var operationNames = Enum.GetNames(typeof(Operation)).ToHashSet();
@@ -303,6 +303,8 @@ class VWas6502
             var words = line.Split(' ', StringSplitOptions.RemoveEmptyEntries).ToList();
             if (words.Count == 0)
                 continue;
+            for (int i = 0; i < words.Count; i++)
+                words[i] = words[i].ToUpper();
             if (words.Count == 1 && words[0] == "?")
             {
                 foreach (var name in operationNames)
@@ -310,7 +312,7 @@ class VWas6502
                 Console.WriteLine("*= .org");
                 continue;
             }
-            if (words.Count == 2 && words[0] == "?" && operationNames.Contains(words[1].ToUpper()))
+            if (words.Count == 2 && words[0] == "?" && operationNames.Contains(words[1]))
             {
                 Operation operation = (Operation)Enum.Parse(typeof(Operation), words[1], true);
                 foreach (var opcode in opcodes.Where(x => x.op == operation))
@@ -328,18 +330,18 @@ class VWas6502
                 Console.WriteLine(".org $1234");
                 continue;   
             }
-            if (words[0] == "*" && words[1] == "=" && parseArgument(words[2], out pc, 2))
+            if (words[0] == "*" && words[1] == "=" && ParseArgument(words[2], out pc, 2))
                 continue;
-            if (words[0].ToLower() == ".org" && parseArgument(words[1], out pc, 2))
+            if (words[0] == ".ORG" && ParseArgument(words[1], out pc, 2))
                 continue;
             if (words[0].Length > 3)
             {
                 var word0 = words[0];
                 words.RemoveAt(0);
-                words.Insert(0, word0.Substring(0, 3));
-                words.Insert(1, word0.Substring(3));
+                words.Insert(0, word0[..3]);
+                words.Insert(1, word0[3..]);
             }
-            if (!operationNames.Contains(words[0].ToUpper()))
+            if (!operationNames.Contains(words[0]))
             {
                 Console.WriteLine($"? {words[0]}");
                 continue;
@@ -349,39 +351,39 @@ class VWas6502
             ushort? arg = null;
             if (words.Count == 1)
                 mode = AddressingMode.None;
-            else if (words.Count == 2 && words[1].ToUpper() == "A")
+            else if (words.Count == 2 && words[1] == "A")
                 mode = AddressingMode.Accumulator;
-            else if (words.Count == 3 && words[1] == "#" && parseArgument(words[2], out arg, 1))
+            else if (words.Count == 3 && words[1] == "#" && ParseArgument(words[2], out arg, 1))
                 mode = AddressingMode.Immediate;
-            else if (words.Count == 4 && parseArgument(words[1], out arg, 1) && words[2] == "," && words[3].ToUpper() == "X")
+            else if (words.Count == 4 && ParseArgument(words[1], out arg, 1) && words[2] == "," && words[3] == "X")
                 mode = AddressingMode.ZeroPageX;
-            else if (words.Count == 4 && parseArgument(words[1], out arg, 1) && words[2] == "," && words[3].ToUpper() == "Y")
+            else if (words.Count == 4 && ParseArgument(words[1], out arg, 1) && words[2] == "," && words[3] == "Y")
                 mode = AddressingMode.ZeroPageY;
-            else if (words.Count == 4 && parseArgument(words[1], out arg, 2) && words[2] == "," && words[3].ToUpper() == "X")
+            else if (words.Count == 4 && ParseArgument(words[1], out arg, 2) && words[2] == "," && words[3] == "X")
                 mode = AddressingMode.AbsoluteX;
-            else if (words.Count == 4 && parseArgument(words[1], out arg, 2) && words[2] == "," && words[3].ToUpper() == "Y")
+            else if (words.Count == 4 && ParseArgument(words[1], out arg, 2) && words[2] == "," && words[3] == "Y")
                 mode = AddressingMode.AbsoluteY;
-            else if (words.Count == 6 && words[1] == "(" && parseArgument(words[2], out arg, 1) && words[3] == "," && words[4].ToUpper() == "X" && words[5] == ")")
+            else if (words.Count == 6 && words[1] == "(" && ParseArgument(words[2], out arg, 1) && words[3] == "," && words[4] == "X" && words[5] == ")")
                 mode = AddressingMode.IndirectX;
-            else if (words.Count == 5 && words[1] == "(" && parseArgument(words[2], out arg, 1) && words[3] == "," && words[4].ToUpper() == "X")
+            else if (words.Count == 5 && words[1] == "(" && ParseArgument(words[2], out arg, 1) && words[3] == "," && words[4] == "X")
                 mode = AddressingMode.IndirectX;
-            else if (words.Count == 6 && words[1] == "(" && parseArgument(words[2], out arg, 1) && words[3] == ")" && words[4] == "," && words[5].ToUpper() == "Y")
+            else if (words.Count == 6 && words[1] == "(" && ParseArgument(words[2], out arg, 1) && words[3] == ")" && words[4] == "," && words[5] == "Y")
                 mode = AddressingMode.IndirectY;
-            else if (words.Count == 5 && words[1] == "(" && parseArgument(words[2], out arg, 1) && words[3] == "," && words[4].ToUpper() == "Y")
+            else if (words.Count == 5 && words[1] == "(" && ParseArgument(words[2], out arg, 1) && words[3] == "," && words[4] == "Y")
                 mode = AddressingMode.IndirectY;
-            else if (words.Count == 4 && words[1] == "(" && parseArgument(words[2], out arg, 2) && words[3] == ")")
+            else if (words.Count == 4 && words[1] == "(" && ParseArgument(words[2], out arg, 2) && words[3] == ")")
                 mode = AddressingMode.Indirect;
-            else if (words.Count == 3 && words[1] == "(" && parseArgument(words[2], out arg, 2))
+            else if (words.Count == 3 && words[1] == "(" && ParseArgument(words[2], out arg, 2))
                 mode = AddressingMode.Indirect;
-            else if (op != Operation.BIT && words[0].ToUpper()[0] == 'B' && words.Count == 2 && parseArgument(words[1], out arg, 2))
+            else if (op != Operation.BIT && words[0][0] == 'B' && words.Count == 2 && ParseArgument(words[1], out arg, 2))
                 mode = AddressingMode.Relative;
-            else if (words.Count == 2 && parseArgument(words[1], out arg, 1))
+            else if (words.Count == 2 && ParseArgument(words[1], out arg, 1))
                 mode = AddressingMode.ZeroPage;
-            else if (words.Count == 2 && parseArgument(words[1], out arg, 2))
+            else if (words.Count == 2 && ParseArgument(words[1], out arg, 2))
                 mode = AddressingMode.Absolute;
-            else if (words.Count == 4 && parseArgument(words[1], out arg, 1) && words[2] == "," && words[3].ToUpper() == "X")
+            else if (words.Count == 4 && ParseArgument(words[1], out arg, 1) && words[2] == "," && words[3] == "X")
                 mode = AddressingMode.ZeroPageX;
-            else if (words.Count == 4 && parseArgument(words[1], out arg, 1) && words[2] == "," && words[3].ToUpper() == "Y")
+            else if (words.Count == 4 && ParseArgument(words[1], out arg, 1) && words[2] == "," && words[3] == "Y")
                 mode = AddressingMode.ZeroPageY;
 
             // for (int i = 0; i < words.Count; i++)
@@ -461,32 +463,25 @@ class VWas6502
         }
     }
 
-    // from: https://stackoverflow.com/questions/11200286/how-do-you-make-an-enum-that-has-data-tied-to-it CustomAttributes
+    // derived from: https://stackoverflow.com/questions/11200286/how-do-you-make-an-enum-that-has-data-tied-to-it CustomAttributes
     [AttributeUsage(AttributeTargets.Field)]
-    private class ExampleAttribute: System.Attribute
+    private class ExampleAttribute(string value) : System.Attribute
     {
-        public string Value { get; private set; }
-        public ExampleAttribute(string value)
-        {
-            Value = value;
-        }
+        public string Value { get; private set; } = value;
     }
     private static string GetExample(AddressingMode mode)
     {
         System.Reflection.FieldInfo fieldInfo = typeof(AddressingMode).GetField(mode.ToString());
-        if (!ReferenceEquals(fieldInfo, null))
+        if (fieldInfo is not null)
         {
             object[] attributes = fieldInfo.GetCustomAttributes(typeof(ExampleAttribute), true);
-            if (!ReferenceEquals(attributes, null) && attributes.Length > 0)
-            {
+            if (attributes?.Length > 0)
                 return ((ExampleAttribute)attributes[0]).Value;
-            }
         }
-        //Not valid value or it didn't have the attribute
         return null;
     }
 
-    private static bool parseArgument(string arg, out ushort? value, int maxBytes)
+    private static bool ParseArgument(string arg, out ushort? value, int maxBytes)
     {
         value = null;
         if (maxBytes < 1 || maxBytes > 2)
