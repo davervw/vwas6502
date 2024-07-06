@@ -8,7 +8,7 @@ using System.Globalization;
 
 namespace vwas6502;
 
-class Program
+class VWas6502
 {
     // Addressing modes
     // nn       Absolute        $1234
