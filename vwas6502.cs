@@ -1,10 +1,4 @@
-﻿using System.Reflection.Emit;
-using System.Collections.Generic;
-using System.Collections;
-using System.Linq;
-using System.Linq.Expressions;
-using System.IO.IsolatedStorage;
-using System.Globalization;
+﻿using System.Globalization;
 
 namespace vwas6502;
 
@@ -41,24 +35,6 @@ class VWas6502
         ZeroPageY,
         None
     }
-
-    //enum AddressingModes
-    //{
-    //    Absolute,
-    //    Absolute_Indirect,
-    //    Absolute_ZeroPage,
-    //    Absolute_ZeroPage_Accumulator_ZeroPageX_AbsoluteX,
-    //    Absolute_ZeroPage_IndirectX_IndirectY_ZeroPageX_AbsoluteX_AbsoluteY,
-    //    Absolute_ZeroPage_ZeroPageX,
-    //    Absolute_ZeroPage_ZeroPageX_AbsoluteX,
-    //    Absolute_ZeroPage_ZeroPageY,
-    //    Immediate_Absolute_ZeroPage_IndirectX_IndirectY_ZeroPageX_AbsoluteX_AbsoluteY,
-    //    Immediate_Absolute_ZeroPage,
-    //    Immediate_Absolute_ZeroPage_ZeroPageY_AbsoluteY,
-    //    Immediate_Absolute_ZeroPage_ZeroPageX_AbsoluteX,
-    //    None,
-    //    Relative,
-    //}
 
     enum Operation
     {
@@ -443,23 +419,8 @@ class VWas6502
                     ++pc;
             }
             Console.WriteLine();
+        }
     }
-    }
-
-    // Addressing modes
-    // nn       Absolute        $1234
-    // nn, X    Absolute X      $1234, X
-    // nn, Y    Absolute Y      $1234, Y
-    // A        Accumulator     A (or assumed)
-    // #n       Immediate       #5A
-    // (n, X)   Indirect X      ($5A, X)
-    // (n), Y   Indirect Y      ($5A), Y
-    // (nn)     Indirect        ($5A)
-    // n        Relative        $1234 (must be within +127, -128 bytes of next PC)
-    // n        Zero Page       $5A
-    // n, X     Zero Page X     $5A, X
-    // n, Y     Zero Page Y     $5A, Y
-    //          None
 
     private static bool parseArgument(string arg, out ushort? value, int maxBytes)
     {
@@ -475,5 +436,3 @@ class VWas6502
         return value != null;
     }
 }
-
-
