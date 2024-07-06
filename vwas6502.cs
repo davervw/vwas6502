@@ -21,18 +21,31 @@ class VWas6502
 
     enum AddressingMode
     {
+        [Example("$1234")]
         Absolute,
+        [Example("$1234,X")]
         AbsoluteX,
+        [Example("$1234,Y")]
         AbsoluteY,
+        [Example("A")]
         Accumulator,
+        [Example("#$12")]
         Immediate,
+        [Example("($12,X)")]
         IndirectX,
+        [Example("($12),Y")]
         IndirectY,
+        [Example("($1234)")]
         Indirect,
+        [Example("$1234")]
         Relative,
+        [Example("$12")]
         ZeroPage,
+        [Example("$12,X")]
         ZeroPageX,
+        [Example("$12,Y")]
         ZeroPageY,
+        [Example("")]
         None
     }
 
@@ -285,10 +298,36 @@ class VWas6502
             line = line.Replace("#", " # ");
             line = line.Replace("=", " = ");
             line = line.Replace("*", " * ");
+            line = line.Replace("?", " ? ");
             line = line.Replace("$", "");
             var words = line.Split(' ', StringSplitOptions.RemoveEmptyEntries).ToList();
             if (words.Count == 0)
                 continue;
+            if (words.Count == 1 && words[0] == "?")
+            {
+                foreach (var name in operationNames)
+                    Console.Write($"{name} ");
+                Console.WriteLine("*= .org");
+                continue;
+            }
+            if (words.Count == 2 && words[0] == "?" && operationNames.Contains(words[1].ToUpper()))
+            {
+                Operation operation = (Operation)Enum.Parse(typeof(Operation), words[1], true);
+                foreach (var opcode in opcodes.Where(x => x.op == operation))
+                    Console.WriteLine($"{opcode.opcode:X2} {opcode.mode}: {operation} {GetExample(opcode.mode)}");
+                continue;
+            }
+            if (words.Count == 2 && words[0] == "?" && words[1] == "*"
+                || words.Count == 3 && words[0] == "?" && words[1] == "*" && words[2] == "=")
+            {
+                Console.WriteLine("*=$1234");
+                continue;   
+            }
+            if (words.Count == 2 && words[0] == "?" && words[1] == ".org")
+            {
+                Console.WriteLine(".org $1234");
+                continue;   
+            }
             if (words[0] == "*" && words[1] == "=" && parseArgument(words[2], out pc, 2))
                 continue;
             if (words[0].ToLower() == ".org" && parseArgument(words[1], out pc, 2))
@@ -420,6 +459,31 @@ class VWas6502
             }
             Console.WriteLine();
         }
+    }
+
+    // from: https://stackoverflow.com/questions/11200286/how-do-you-make-an-enum-that-has-data-tied-to-it CustomAttributes
+    [AttributeUsage(AttributeTargets.Field)]
+    private class ExampleAttribute: System.Attribute
+    {
+        public string Value { get; private set; }
+        public ExampleAttribute(string value)
+        {
+            Value = value;
+        }
+    }
+    private static string GetExample(AddressingMode mode)
+    {
+        System.Reflection.FieldInfo fieldInfo = typeof(AddressingMode).GetField(mode.ToString());
+        if (!ReferenceEquals(fieldInfo, null))
+        {
+            object[] attributes = fieldInfo.GetCustomAttributes(typeof(ExampleAttribute), true);
+            if (!ReferenceEquals(attributes, null) && attributes.Length > 0)
+            {
+                return ((ExampleAttribute)attributes[0]).Value;
+            }
+        }
+        //Not valid value or it didn't have the attribute
+        return null;
     }
 
     private static bool parseArgument(string arg, out ushort? value, int maxBytes)
