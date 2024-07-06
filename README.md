@@ -2,7 +2,7 @@
 
 ````
 interactive console 6502 assembler
-vwas6502 version 1.0
+vwas6502 version 1.01
 Copyright (c) 2024 by David R. Van Wagner github.com/davervw
 MIT LICENSE
 ? for keywords
@@ -35,12 +35,12 @@ rts
 1000 A0 00
 1002 A9 2A
 1004 99 00 04
-1006 99 00 05
-1008 99 00 06
-100A 99 00 07
-100C C8
-100D D0 F3
-100F 60
+1007 99 00 05
+100A 99 00 06
+100D 99 00 07
+1010 C8
+1011 D0 EF
+1013 60
 
 quit
 ````

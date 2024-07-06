@@ -319,7 +319,7 @@ class VWas6502
     {
         Console.WriteLine(@"
 interactive console 6502 assembler
-vwas6502 version 1.0
+vwas6502 version 1.01
 Copyright (c) 2024 by David R. Van Wagner github.com/davervw
 MIT LICENSE
 ? for keywords
@@ -510,7 +510,7 @@ MIT LICENSE
             {
                 Console.Write($" {(byte)arg:X2} {(arg >> 8):X2}");
                 if (pc != null)
-                    ++pc;
+                    pc += 2;
             }
             Console.WriteLine();
         }
