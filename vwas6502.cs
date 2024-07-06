@@ -298,6 +298,7 @@ class VWas6502
 
     static void Main(string[] args)
     {
+        var pc = (ushort?)null;
         var operationNames = Enum.GetNames(typeof(Operation)).ToHashSet();
         while (true)
         {
@@ -306,9 +307,15 @@ class VWas6502
             line = line.Replace("(", " ( ");
             line = line.Replace(")", " ) ");
             line = line.Replace("#", " # ");
+            line = line.Replace("=", " = ");
+            line = line.Replace("*", " * ");
             line = line.Replace("$", "");
             var words = line.Split(' ', StringSplitOptions.RemoveEmptyEntries).ToList();
             if (words.Count == 0)
+                continue;
+            if (words[0] == "*" && words[1] == "=" && parseArgument(words[2], out pc, 2))
+                continue;
+            if (words[0].ToLower() == ".org" && parseArgument(words[1], out pc, 2))
                 continue;
             if (words[0].Length > 3)
             {
@@ -362,8 +369,8 @@ class VWas6502
             else if (words.Count == 4 && parseArgument(words[1], out arg, 1) && words[2] == "," && words[3].ToUpper() == "Y")
                 mode = AddressingMode.ZeroPageY;
 
-            for (int i = 0; i < words.Count; i++)
-                Console.WriteLine($"[{i}]={words[i]}");
+            // for (int i = 0; i < words.Count; i++)
+            //     Console.WriteLine($"[{i}]={words[i]}");
 
             OpCodeInfo info = opcodes.FirstOrDefault(x => x.op == op && x.mode == mode);
             if (info == null && mode == AddressingMode.None)
@@ -392,8 +399,51 @@ class VWas6502
                 Console.WriteLine($"Addressing mode {(mode==null?"Unknown":mode)} is not valid for {op}");
                 continue;
             }
-            Console.WriteLine($"{op} {info.mode} {info.opcode:X2}");
-        }
+            //Console.WriteLine($"{op} {info.mode} {info.opcode:X2}");
+            if (pc == null)
+                Console.Write("????");
+            else
+                Console.Write($"{pc:X4}");
+            Console.Write($" {info.opcode:X2}");
+            if (pc != null)
+                ++pc;
+            if (mode == AddressingMode.Relative)
+            {
+                ++pc;
+                if (pc == null)
+                {
+                    Console.Write(" ??");
+                }
+                else {
+                    int offset = arg.Value - pc.Value;
+                    if ((sbyte)offset == offset)
+                        Console.Write($" {(byte)offset:X2}");
+                    else
+                        Console.Write(" ??");
+                }
+            }
+            if (mode == AddressingMode.Immediate
+                || mode == AddressingMode.ZeroPage
+                || mode == AddressingMode.ZeroPageX
+                || mode == AddressingMode.ZeroPageY
+                || mode == AddressingMode.IndirectX
+                || mode == AddressingMode.IndirectY) 
+            {
+                Console.Write($" {(byte)arg:X2}");
+                if (pc != null)
+                    ++pc;
+            }
+            else if (mode == AddressingMode.Absolute
+                || mode == AddressingMode.AbsoluteX
+                || mode == AddressingMode.AbsoluteY
+                || mode == AddressingMode.Indirect)
+            {
+                Console.Write($" {(byte)arg:X2} {(arg >> 8):X2}");
+                if (pc != null)
+                    ++pc;
+            }
+            Console.WriteLine();
+    }
     }
 
     // Addressing modes
