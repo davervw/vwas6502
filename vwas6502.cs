@@ -1,10 +1,38 @@
-﻿using System.Globalization;
+﻿// vwas6502.cs - interactive console 6502 assembler
+//
+//////////////////////////////////////////////////////////////////////////////////
+// MIT License
+//
+// Copyright (c) 2024 David R. Van Wagner
+// davevw.com
+//
+// Permission is hereby granted, free of charge, to any person obtaining a copy
+// of this software and associated documentation files (the "Software"), to deal
+// in the Software without restriction, including without limitation the rights
+// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+// copies of the Software, and to permit persons to whom the Software is
+// furnished to do so, subject to the following conditions:
+//
+// The above copyright notice and this permission notice shall be included in all
+// copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+// SOFTWARE.
+//////////////////////////////////////////////////////////////////////////////////
+
+using System.Globalization;
 
 namespace vwas6502;
 
 class VWas6502
 {
-    // Addressing modes
+    // Addressing modes derived from Micro Logic Corp.'s 6502 (65XX) Microproecessor Instant Reference Card
+    // https://mirrors.apple2.org.za/ftp.apple.asimov.net/documentation/programming/6502assembly/Micro%20Logic%206502%20Quick%20Reference%20Card.pdf
     // nn       Absolute        $1234
     // nn, X    Absolute X      $1234, X
     // nn, Y    Absolute Y      $1234, Y
@@ -49,6 +77,7 @@ class VWas6502
         None
     }
 
+    // derived from Micro Logic Corp.'s 6502 (65XX) Microproecessor Instant Reference Card
     enum Operation
     {
         ADC,
@@ -116,6 +145,7 @@ class VWas6502
         public AddressingMode mode;
     }
 
+    // derived from Micro Logic Corp.'s 6502 (65XX) Microproecessor Instant Reference Card
     static readonly OpCodeInfo[] opcodes = [
         new OpCodeInfo { opcode=0x00, op=Operation.BRK, mode=AddressingMode.None },
         new OpCodeInfo { opcode=0x01, op=Operation.ORA, mode=AddressingMode.IndirectX },
@@ -287,6 +317,15 @@ class VWas6502
 
     static void Main()
     {
+        Console.WriteLine(@"
+interactive console 6502 assembler
+vwas6502 version 1.0
+Copyright (c) 2024 by David R. Van Wagner github.com/davervw
+MIT LICENSE
+? for keywords
+? keyword for example(s)
+");
+
         var pc = (ushort?)null;
         var operationNames = Enum.GetNames(typeof(Operation)).ToHashSet();
         while (true)
@@ -305,30 +344,44 @@ class VWas6502
                 continue;
             for (int i = 0; i < words.Count; i++)
                 words[i] = words[i].ToUpper();
-            if (words.Count == 1 && words[0] == "?")
+            if (words.Count == 1 && (words[0] == "END" || words[0] == "QUIT"))
+                return;
+            var isHelp = (words[0] == "?" || words[0] == "HELP");
+            if (words.Count == 1 && isHelp)
             {
                 foreach (var name in operationNames)
                     Console.Write($"{name} ");
-                Console.WriteLine("*= .org");
+                Console.WriteLine("*= .org ? help end quit");
                 continue;
             }
-            if (words.Count == 2 && words[0] == "?" && operationNames.Contains(words[1]))
+            if (words.Count == 2 && isHelp && operationNames.Contains(words[1]))
             {
                 Operation operation = (Operation)Enum.Parse(typeof(Operation), words[1], true);
                 foreach (var opcode in opcodes.Where(x => x.op == operation))
                     Console.WriteLine($"{opcode.opcode:X2} {opcode.mode}: {operation} {GetExample(opcode.mode)}");
                 continue;
             }
-            if (words.Count == 2 && words[0] == "?" && words[1] == "*"
-                || words.Count == 3 && words[0] == "?" && words[1] == "*" && words[2] == "=")
+            if (words.Count == 2 && isHelp && words[1] == "*"
+                || words.Count == 3 && isHelp && words[1] == "*" && words[2] == "=")
             {
                 Console.WriteLine("*=$1234");
                 continue;   
             }
-            if (words.Count == 2 && words[0] == "?" && words[1] == ".org")
+            if (words.Count == 2 && isHelp && words[1] == ".ORG")
             {
                 Console.WriteLine(".org $1234");
                 continue;   
+            }
+            if (words.Count == 2 && isHelp && (words[1] == "END" || words[1] == "QUIT"))
+            {
+                Console.WriteLine("end or quit keyword will exit program");
+                continue;
+            }
+            if (words.Count == 2 && isHelp && (words[1] == "?" || words[1] == "HELP"))
+            {
+                Console.WriteLine("help or ? by itself will list mnemonics and keywords");
+                Console.WriteLine("help or ? followed by a keyword will give examples of use");
+                continue;
             }
             if (words[0] == "*" && words[1] == "=" && ParseArgument(words[2], out pc, 2))
                 continue;
