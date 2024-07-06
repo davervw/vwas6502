@@ -1,0 +1,131 @@
+
+; ******** Source: vwas6502.asm
+     1                          ;; vwas6502.asm - interactive console 6502 assembler
+     2                          ;;
+     3                          ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+     4                          ;; MIT License
+     5                          ;;
+     6                          ;; Copyright (c) 2024 David R. Van Wagner
+     7                          ;; davevw.com
+     8                          ;;
+     9                          ;; Permission is hereby granted, free of charge, to any person obtaining a copy
+    10                          ;; of this software and associated documentation files (the "Software"), to deal
+    11                          ;; in the Software without restriction, including without limitation the rights
+    12                          ;; to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+    13                          ;; copies of the Software, and to permit persons to whom the Software is
+    14                          ;; furnished to do so, subject to the following conditions:
+    15                          ;;
+    16                          ;; The above copyright notice and this permission notice shall be included in all
+    17                          ;; copies or substantial portions of the Software.
+    18                          ;;
+    19                          ;; THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+    20                          ;; IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+    21                          ;; FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+    22                          ;; AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+    23                          ;; LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+    24                          ;; OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+    25                          ;; SOFTWARE.
+    26                          ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+    27                          
+    28                          *=$cc00
+    29                          
+    30                          ; kernal/system calls
+    31                          charout=$ffd2
+    32                          
+    33                          ; zeropage
+    34                          ptr1=$fb ; and $fc
+    35                          ptr2=$fd ; and $fe
+    36                          tmp=$ff
+    37                          
+    38                          ; test
+    39                          start:
+    40  cc00 a900                   lda #<start
+    41  cc02 a2cc                   ldx #>start
+    42  cc04 85fb                   sta ptr1
+    43  cc06 86fc                   stx ptr1+1
+    44  cc08 a956                   lda #<end
+    45  cc0a a2cc                   ldx #>end
+    46  cc0c 85fd                   sta ptr2
+    47  cc0e 86fe                   stx ptr2+1
+    48                              ; fall through to disassemble
+    49                          
+    50                          disassemble:
+    51  cc10 60                     rts
+    52                          
+    53                          disp_opcode: ; .A opcode byte
+    54  cc11 a097                   ldy #nopcodes
+    55  cc13 a296                   ldx #nopcodes-1
+    56  cc15 ddffcc             -   cmp opcodes,x
+    57  cc18 f005                   beq +
+    58  cc1a ca                     dex
+    59  cc1b 88                     dey
+    60  cc1c d0f7                   bne -
+    61  cc1e 60                     rts
+    62  cc1f bd96cd             +   lda instidx, x
+    63                              ; fall through to display instruction
+    64                          
+    65                          dispinst: ; .A instruction index 0..55
+    66  cc22 aa                     tax
+    67  cc23 e038                   cpx #ninst
+    68  cc25 b012                   bcs +
+    69  cc27 bd57cc                 lda inst0, x
+    70  cc2a 20d2ff                 jsr charout
+    71  cc2d bd8fcc                 lda inst1, x
+    72  cc30 20d2ff                 jsr charout
+    73  cc33 bdc7cc                 lda inst2, x
+    74  cc36 20d2ff                 jsr charout
+    75  cc39 60                 +   rts
+    76                          
+    77                          disphexword: ; .A low, .X high, 0000..FFFF
+    78  cc3a 48                     pha
+    79  cc3b 8a                     txa
+    80  cc3c 2040cc                 jsr disphexbyte
+    81  cc3f 68                     pla
+    82                              ;fall through to call again
+    83                          
+    84                          disphexbyte: ; .A 00..FF
+    85  cc40 48                     pha
+    86  cc41 4a                     lsr
+    87  cc42 4a                     lsr
+    88  cc43 4a                     lsr
+    89  cc44 4a                     lsr
+    90  cc45 2049cc                 jsr disphexnybble
+    91  cc48 68                     pla
+    92                              ;fall through to call again
+    93                          
+    94                          disphexnybble: ; .A 0..F
+    95  cc49 290f                   and #$0F
+    96  cc4b 0930                   ora #$30
+    97  cc4d c93a                   cmp #$3A
+    98  cc4f 9002                   bcc +
+    99  cc51 6906                   adc #$06
+   100  cc53 4cd2ff             +   jmp charout
+   101                          
+   102  cc56 00                 end: brk
+   103                          
+   104                          ; instruction textual mnuemonic first, second, third letters (read down in source)
+   105                          ninst = 56
+   106  cc57 4141414242424242...inst0 !text "AAABBBBBBBBBBCCCCCCCDDDEIIIJJLLLLNOPPPPRRRRSSSSSSSTTTTTT"
+   107  cc8f 444e53434345494d...inst1 !text "DNSCCEIMNPRVVLLLLMPPEEEONNNMSDDDSORHHLLOOTTBEEETTTAASXXY"
+   108  ccc7 43444c4353515449...inst2 !text "CDLCSQTIELKCSCDIVPXYCXYRCXYPRAXYRPAAPAPLRISCCDIAXYXYXASA"
+   109                          
+   110                          ; 6502 addressing modes (number of bytes per instruction shown at end of comment)
+   111                          modeAcc  = 0 ; 0 Accumulator 1
+   112                          modeNone = 1 ; 1 None 1
+   113                          modeImm  = 2 ; 2 Immediate 2
+   114                          modeIndX = 3 ; 3 IndirectX 2
+   115                          modeIndY = 4 ; 4 IndirectY 2
+   116                          modeRel  = 5 ; 5 Relative 2
+   117                          modeZP   = 6 ; 6 ZeroPage 2
+   118                          modeZPX  = 7 ; 7 ZeroPageX 2
+   119                          modeZPY  = 8 ; 8 ZeroPageY 2
+   120                          modeAbs  = 9 ; 9 Absolute 3
+   121                          modeAbsX = 10 ; 10 AbsoluteX 3
+   122                          modeAbsY = 11 ; 11 AbsoluteY 3
+   123                          modeInd  = 12 ; 12 Indirect 3
+   124                          
+   125                          ; opcode table of byte values (opcodes), instructions, and addressing modes
+   126                          nopcodes = 151
+   127  ccff 0001050608090a0d...opcodes !byte $00,$01,$05,$06,$08,$09,$0A,$0D,$0E,$10,$11,$15,$16,$18,$19,$1D,$1E,$20,$21,$24,$25,$26,$28,$29,$2A,$2C,$2D,$2E,$30,$31,$35,$36,$38,$39,$3D,$3E,$40,$41,$45,$46,$48,$49,$4A,$4C,$4D,$4E,$50,$51,$55,$56,$58,$59,$5D,$5E,$60,$61,$65,$66,$68,$69,$6A,$6C,$6D,$6E,$70,$71,$75,$76,$78,$79,$7D,$7E,$81,$84,$85,$86,$88,$8A,$8C,$8D,$8E,$90,$91,$94,$95,$96,$98,$99,$9A,$9D,$A0,$A1,$A2,$A4,$A5,$A6,$A8,$A9,$AA,$AC,$AD,$AE,$B0,$B1,$B4,$B5,$B6,$B8,$B9,$BA,$BC,$BD,$BE,$C0,$C1,$C4,$C5,$C6,$C8,$C9,$CA,$CC,$CD,$CE,$D0,$D1,$D5,$D6,$D8,$D9,$DD,$DE,$E0,$E1,$E4,$E5,$E6,$E8,$E9,$EA,$EC,$ED,$EE,$F0,$F1,$F5,$F6,$F8,$F9,$FD,$FE
+   128  cd96 0a22220224220222...instidx !byte $0A,$22,$22,$02,$24,$22,$02,$22,$02,$09,$22,$22,$02,$0D,$22,$22,$02,$1C,$01,$06,$01,$27,$26,$01,$27,$06,$01,$27,$07,$01,$01,$27,$2C,$01,$01,$27,$29,$17,$17,$20,$23,$17,$20,$1B,$17,$20,$0B,$17,$17,$20,$0F,$17,$17,$20,$2A,$00,$00,$28,$25,$00,$28,$1B,$00,$28,$0C,$00,$00,$28,$2E,$00,$00,$28,$2F,$31,$2F,$30,$16,$35,$31,$2F,$30,$03,$2F,$31,$2F,$30,$37,$2F,$36,$2F,$1F,$1D,$1E,$1F,$1D,$1E,$33,$1D,$32,$1F,$1D,$1E,$04,$1D,$1F,$1D,$1E,$10,$1D,$34,$1F,$1D,$1E,$13,$11,$13,$11,$14,$1A,$11,$15,$13,$11,$14,$08,$11,$11,$14,$0E,$11,$11,$14,$12,$2B,$12,$2B,$18,$19,$2B,$21,$12,$2B,$18,$05,$2B,$2B,$18,$2D,$2B,$2B,$18
+   129  ce2d 0103060601020009...modeidx !byte $01,$03,$06,$06,$01,$02,$00,$09,$09,$05,$04,$07,$07,$01,$0B,$0A,$0A,$09,$03,$06,$06,$06,$01,$02,$00,$09,$09,$09,$05,$04,$07,$07,$01,$0B,$0A,$0A,$01,$03,$06,$06,$01,$02,$00,$09,$09,$09,$05,$04,$07,$07,$01,$0B,$0A,$0A,$01,$03,$06,$06,$01,$02,$00,$0C,$09,$09,$05,$04,$07,$07,$01,$0B,$0A,$0A,$03,$06,$06,$06,$01,$01,$09,$09,$09,$05,$04,$07,$07,$08,$01,$0B,$01,$0A,$02,$03,$02,$06,$06,$06,$01,$02,$01,$09,$09,$09,$05,$04,$07,$07,$08,$01,$0B,$01,$0A,$0A,$0B,$02,$03,$06,$06,$06,$01,$02,$01,$09,$09,$09,$05,$04,$07,$07,$01,$0B,$0A,$0A,$02,$03,$06,$06,$06,$01,$02,$01,$09,$09,$09,$05,$04,$07,$07,$01,$0B,$0A,$0A
