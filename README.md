@@ -2,7 +2,7 @@
 
 ````
 interactive console 6502 assembler
-vwas6502 version 1.01
+vwas6502 version 1.02
 Copyright (c) 2024 by David R. Van Wagner github.com/davervw
 MIT LICENSE
 ? for keywords
@@ -12,7 +12,7 @@ MIT LICENSE
 ADC AND ASL BCC BCS BEQ BMI BNE BPL BVC BVS BIT BRK CLC CLD CLI CLV 
 CMP CPX CPY DEC DEX DEY EOR INC INX INY JMP JSR LDA LDX LDY LSR NOP 
 ORA PHA PHP PLA PLP ROL ROR RTI RTS SBC SEC SED SEI STA STX STY TAX 
-TAY TSX TXA TXS TYA *= .org ? help end quit
+TAY TSX TXA TXS TYA *= .org ? help mode end quit
 
 ? sta
 81 IndirectX: STA ($12,X)

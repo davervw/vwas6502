@@ -65,7 +65,7 @@ class VWas6502
         IndirectY,
         [Example("($1234)")]
         Indirect,
-        [Example("$1234")]
+        [Example("$1234 {-128 to +127}")]
         Relative,
         [Example("$12")]
         ZeroPage,
@@ -319,7 +319,7 @@ class VWas6502
     {
         Console.WriteLine(@"
 interactive console 6502 assembler
-vwas6502 version 1.01
+vwas6502 version 1.02
 Copyright (c) 2024 by David R. Van Wagner github.com/davervw
 MIT LICENSE
 ? for keywords
@@ -347,11 +347,25 @@ MIT LICENSE
             if (words.Count == 1 && (words[0] == "END" || words[0] == "QUIT"))
                 return;
             var isHelp = (words[0] == "?" || words[0] == "HELP");
+            if (words.Count == 2 && isHelp && words[1] == "MODE" || words.Count == 1 && words[0] == "MODE")
+            {
+                var modeNames = Enum.GetNames<AddressingMode>().OrderBy(x => x);
+                foreach (var modeName in modeNames)
+                {
+                    var addressingMode = (AddressingMode)Enum.Parse(typeof(AddressingMode), modeName);
+                    Console.Write($"{modeName} {GetExample(addressingMode)}");
+                    var opNames = opcodes.Where(x => x.mode.ToString() == modeName).Select(x => x.op.ToString()).OrderBy(x => x);
+                    foreach (var opName in opNames)
+                        Console.Write($" {opName}");
+                    Console.WriteLine();
+                }
+                continue;
+            }
             if (words.Count == 1 && isHelp)
             {
                 foreach (var name in operationNames)
                     Console.Write($"{name} ");
-                Console.WriteLine("*= .org ? help end quit");
+                Console.WriteLine("*= .org ? help mode end quit");
                 continue;
             }
             if (words.Count == 2 && isHelp && operationNames.Contains(words[1]))
