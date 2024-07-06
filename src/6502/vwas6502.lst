@@ -27,7 +27,7 @@
     25                          ;; SOFTWARE.
     26                          ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
     27                          
-    28                          *=$cc00
+    28                          *=$c000
     29                          
     30                          ; kernal/system calls
     31                          charout=$ffd2
@@ -39,93 +39,141 @@
     37                          
     38                          ; test
     39                          start:
-    40  cc00 a900                   lda #<start
-    41  cc02 a2cc                   ldx #>start
-    42  cc04 85fb                   sta ptr1
-    43  cc06 86fc                   stx ptr1+1
-    44  cc08 a956                   lda #<end
-    45  cc0a a2cc                   ldx #>end
-    46  cc0c 85fd                   sta ptr2
-    47  cc0e 86fe                   stx ptr2+1
+    40  c000 a900                   lda #<start
+    41  c002 a2c0                   ldx #>start
+    42  c004 85fb                   sta ptr1
+    43  c006 86fc                   stx ptr1+1
+    44  c008 a9af                   lda #<end
+    45  c00a a2c0                   ldx #>end
+    46  c00c 85fd                   sta ptr2
+    47  c00e 86fe                   stx ptr2+1
     48                              ; fall through to disassemble
     49                          
     50                          disassemble:
-    51  cc10 60                     rts
-    52                          
-    53                          disp_opcode: ; .A opcode byte
-    54  cc11 a097                   ldy #nopcodes
-    55  cc13 a296                   ldx #nopcodes-1
-    56  cc15 ddffcc             -   cmp opcodes,x
-    57  cc18 f005                   beq +
-    58  cc1a ca                     dex
-    59  cc1b 88                     dey
-    60  cc1c d0f7                   bne -
-    61  cc1e 60                     rts
-    62  cc1f bd96cd             +   lda instidx, x
-    63                              ; fall through to display instruction
-    64                          
-    65                          dispinst: ; .A instruction index 0..55
-    66  cc22 aa                     tax
-    67  cc23 e038                   cpx #ninst
-    68  cc25 b012                   bcs +
-    69  cc27 bd57cc                 lda inst0, x
-    70  cc2a 20d2ff                 jsr charout
-    71  cc2d bd8fcc                 lda inst1, x
-    72  cc30 20d2ff                 jsr charout
-    73  cc33 bdc7cc                 lda inst2, x
-    74  cc36 20d2ff                 jsr charout
-    75  cc39 60                 +   rts
-    76                          
-    77                          disphexword: ; .A low, .X high, 0000..FFFF
-    78  cc3a 48                     pha
-    79  cc3b 8a                     txa
-    80  cc3c 2040cc                 jsr disphexbyte
-    81  cc3f 68                     pla
-    82                              ;fall through to call again
-    83                          
-    84                          disphexbyte: ; .A 00..FF
-    85  cc40 48                     pha
-    86  cc41 4a                     lsr
-    87  cc42 4a                     lsr
-    88  cc43 4a                     lsr
-    89  cc44 4a                     lsr
-    90  cc45 2049cc                 jsr disphexnybble
-    91  cc48 68                     pla
-    92                              ;fall through to call again
-    93                          
-    94                          disphexnybble: ; .A 0..F
-    95  cc49 290f                   and #$0F
-    96  cc4b 0930                   ora #$30
-    97  cc4d c93a                   cmp #$3A
-    98  cc4f 9002                   bcc +
-    99  cc51 6906                   adc #$06
-   100  cc53 4cd2ff             +   jmp charout
-   101                          
-   102  cc56 00                 end: brk
-   103                          
-   104                          ; instruction textual mnuemonic first, second, third letters (read down in source)
-   105                          ninst = 56
-   106  cc57 4141414242424242...inst0 !text "AAABBBBBBBBBBCCCCCCCDDDEIIIJJLLLLNOPPPPRRRRSSSSSSSTTTTTT"
-   107  cc8f 444e53434345494d...inst1 !text "DNSCCEIMNPRVVLLLLMPPEEEONNNMSDDDSORHHLLOOTTBEEETTTAASXXY"
-   108  ccc7 43444c4353515449...inst2 !text "CDLCSQTIELKCSCDIVPXYCXYRCXYPRAXYRPAAPAPLRISCCDIAXYXYXASA"
-   109                          
-   110                          ; 6502 addressing modes (number of bytes per instruction shown at end of comment)
-   111                          modeAcc  = 0 ; 0 Accumulator 1
-   112                          modeNone = 1 ; 1 None 1
-   113                          modeImm  = 2 ; 2 Immediate 2
-   114                          modeIndX = 3 ; 3 IndirectX 2
-   115                          modeIndY = 4 ; 4 IndirectY 2
-   116                          modeRel  = 5 ; 5 Relative 2
-   117                          modeZP   = 6 ; 6 ZeroPage 2
-   118                          modeZPX  = 7 ; 7 ZeroPageX 2
-   119                          modeZPY  = 8 ; 8 ZeroPageY 2
-   120                          modeAbs  = 9 ; 9 Absolute 3
-   121                          modeAbsX = 10 ; 10 AbsoluteX 3
-   122                          modeAbsY = 11 ; 11 AbsoluteY 3
-   123                          modeInd  = 12 ; 12 Indirect 3
-   124                          
-   125                          ; opcode table of byte values (opcodes), instructions, and addressing modes
-   126                          nopcodes = 151
-   127  ccff 0001050608090a0d...opcodes !byte $00,$01,$05,$06,$08,$09,$0A,$0D,$0E,$10,$11,$15,$16,$18,$19,$1D,$1E,$20,$21,$24,$25,$26,$28,$29,$2A,$2C,$2D,$2E,$30,$31,$35,$36,$38,$39,$3D,$3E,$40,$41,$45,$46,$48,$49,$4A,$4C,$4D,$4E,$50,$51,$55,$56,$58,$59,$5D,$5E,$60,$61,$65,$66,$68,$69,$6A,$6C,$6D,$6E,$70,$71,$75,$76,$78,$79,$7D,$7E,$81,$84,$85,$86,$88,$8A,$8C,$8D,$8E,$90,$91,$94,$95,$96,$98,$99,$9A,$9D,$A0,$A1,$A2,$A4,$A5,$A6,$A8,$A9,$AA,$AC,$AD,$AE,$B0,$B1,$B4,$B5,$B6,$B8,$B9,$BA,$BC,$BD,$BE,$C0,$C1,$C4,$C5,$C6,$C8,$C9,$CA,$CC,$CD,$CE,$D0,$D1,$D5,$D6,$D8,$D9,$DD,$DE,$E0,$E1,$E4,$E5,$E6,$E8,$E9,$EA,$EC,$ED,$EE,$F0,$F1,$F5,$F6,$F8,$F9,$FD,$FE
-   128  cd96 0a22220224220222...instidx !byte $0A,$22,$22,$02,$24,$22,$02,$22,$02,$09,$22,$22,$02,$0D,$22,$22,$02,$1C,$01,$06,$01,$27,$26,$01,$27,$06,$01,$27,$07,$01,$01,$27,$2C,$01,$01,$27,$29,$17,$17,$20,$23,$17,$20,$1B,$17,$20,$0B,$17,$17,$20,$0F,$17,$17,$20,$2A,$00,$00,$28,$25,$00,$28,$1B,$00,$28,$0C,$00,$00,$28,$2E,$00,$00,$28,$2F,$31,$2F,$30,$16,$35,$31,$2F,$30,$03,$2F,$31,$2F,$30,$37,$2F,$36,$2F,$1F,$1D,$1E,$1F,$1D,$1E,$33,$1D,$32,$1F,$1D,$1E,$04,$1D,$1F,$1D,$1E,$10,$1D,$34,$1F,$1D,$1E,$13,$11,$13,$11,$14,$1A,$11,$15,$13,$11,$14,$08,$11,$11,$14,$0E,$11,$11,$14,$12,$2B,$12,$2B,$18,$19,$2B,$21,$12,$2B,$18,$05,$2B,$2B,$18,$2D,$2B,$2B,$18
-   129  ce2d 0103060601020009...modeidx !byte $01,$03,$06,$06,$01,$02,$00,$09,$09,$05,$04,$07,$07,$01,$0B,$0A,$0A,$09,$03,$06,$06,$06,$01,$02,$00,$09,$09,$09,$05,$04,$07,$07,$01,$0B,$0A,$0A,$01,$03,$06,$06,$01,$02,$00,$09,$09,$09,$05,$04,$07,$07,$01,$0B,$0A,$0A,$01,$03,$06,$06,$01,$02,$00,$0C,$09,$09,$05,$04,$07,$07,$01,$0B,$0A,$0A,$03,$06,$06,$06,$01,$01,$09,$09,$09,$05,$04,$07,$07,$08,$01,$0B,$01,$0A,$02,$03,$02,$06,$06,$06,$01,$02,$01,$09,$09,$09,$05,$04,$07,$07,$08,$01,$0B,$01,$0A,$0A,$0B,$02,$03,$06,$06,$06,$01,$02,$01,$09,$09,$09,$05,$04,$07,$07,$01,$0B,$0A,$0A,$02,$03,$06,$06,$06,$01,$02,$01,$09,$09,$09,$05,$04,$07,$07,$01,$0B,$0A,$0A
+    51  c010 a5fb               -   lda ptr1
+    52  c012 a6fc                   ldx ptr1+1
+    53  c014 2093c0                 jsr disphexword
+    54  c017 a920                   lda #$20
+    55  c019 20d2ff                 jsr charout
+    56  c01c a000                   ldy #0
+    57  c01e b1fb                   lda (ptr1),y
+    58  c020 48                     pha
+    59  c021 2099c0                 jsr disphexbyte
+    60  c024 a920                   lda #$20
+    61  c026 20d2ff                 jsr charout
+    62  c029 68                     pla
+    63  c02a 2059c0                 jsr find_opcode
+    64  c02d 48                     pha
+    65  c02e 2070c0                 jsr dispinst
+    66  c031 a90d                   lda #13
+    67  c033 20d2ff                 jsr charout
+    68  c036 a201                   ldx #1
+    69  c038 68                     pla
+    70  c039 3001                   bmi +
+    71  c03b aa                     tax
+    72  c03c bd1dc3             +   lda lengths,x
+    73  c03f 18                     clc
+    74  c040 65fb                   adc ptr1
+    75  c042 85fb                   sta ptr1
+    76  c044 9002                   bcc +
+    77  c046 e6fc                   inc ptr1+1
+    78  c048 204ec0             +   jsr compareptrs
+    79  c04b 90c3                   bcc -
+    80  c04d 60                     rts
+    81                          
+    82                          compareptrs:
+    83  c04e a5fc                   lda ptr1+1
+    84  c050 c5fe                   cmp ptr2+1
+    85  c052 d004                   bne +
+    86  c054 a5fb                   lda ptr1
+    87  c056 c5fd                   cmp ptr2
+    88  c058 60                 +   rts
+    89                          
+    90                          find_opcode: ; .A opcode byte, N flag set if not found, .A is index if found
+    91  c059 a097                   ldy #nopcodes
+    92  c05b a296                   ldx #nopcodes-1
+    93  c05d dd58c1             -   cmp opcodes,x
+    94  c060 f007                   beq +
+    95  c062 ca                     dex
+    96  c063 88                     dey
+    97  c064 d0f7                   bne -
+    98  c066 a9ff                   lda #$FF
+    99  c068 60                     rts
+   100  c069 bdefc1             +   lda instidx, x
+   101  c06c 60                     rts
+   102                          
+   103                          disp_opcode: ; .A opcode byte
+   104  c06d 2059c0                 jsr find_opcode
+   105                              ; fall through to display instruction
+   106                          
+   107                          dispinst: ; .A instruction index 0..55
+   108  c070 aa                     tax
+   109  c071 e038                   cpx #ninst
+   110  c073 b012                   bcs +
+   111  c075 bdb0c0                 lda inst0, x
+   112  c078 20d2ff                 jsr charout
+   113  c07b bde8c0                 lda inst1, x
+   114  c07e 20d2ff                 jsr charout
+   115  c081 bd20c1                 lda inst2, x
+   116  c084 4cd2ff                 jmp charout
+   117  c087 a93f               +   lda #'?'
+   118  c089 20d2ff                 jsr charout
+   119  c08c 20d2ff                 jsr charout
+   120  c08f 20d2ff                 jsr charout
+   121  c092 60                     rts
+   122                          
+   123                          disphexword: ; .A low, .X high, 0000..FFFF
+   124  c093 48                     pha
+   125  c094 8a                     txa
+   126  c095 2099c0                 jsr disphexbyte
+   127  c098 68                     pla
+   128                              ;fall through to call again
+   129                          
+   130                          disphexbyte: ; .A 00..FF
+   131  c099 48                     pha
+   132  c09a 4a                     lsr
+   133  c09b 4a                     lsr
+   134  c09c 4a                     lsr
+   135  c09d 4a                     lsr
+   136  c09e 20a2c0                 jsr disphexnybble
+   137  c0a1 68                     pla
+   138                              ;fall through to call again
+   139                          
+   140                          disphexnybble: ; .A 0..F
+   141  c0a2 290f                   and #$0F
+   142  c0a4 0930                   ora #$30
+   143  c0a6 c93a                   cmp #$3A
+   144  c0a8 9002                   bcc +
+   145  c0aa 6906                   adc #$06
+   146  c0ac 4cd2ff             +   jmp charout
+   147                          
+   148  c0af 00                 end: brk
+   149                          
+   150                          ; instruction textual mnuemonic first, second, third letters (read down in source)
+   151                          ninst = 56
+   152  c0b0 4141414242424242...inst0 !text "AAABBBBBBBBBBCCCCCCCDDDEIIIJJLLLLNOPPPPRRRRSSSSSSSTTTTTT"
+   153  c0e8 444e53434345494d...inst1 !text "DNSCCEIMNPRVVLLLLMPPEEEONNNMSDDDSORHHLLOOTTBEEETTTAASXXY"
+   154  c120 43444c4353515449...inst2 !text "CDLCSQTIELKCSCDIVPXYCXYRCXYPRAXYRPAAPAPLRISCCDIAXYXYXASA"
+   155                          
+   156                          ; 6502 addressing modes (number of bytes per instruction shown at end of comment)
+   157                          modeAcc  = 0 ; 0 Accumulator 1
+   158                          modeNone = 1 ; 1 None 1
+   159                          modeImm  = 2 ; 2 Immediate 2
+   160                          modeIndX = 3 ; 3 IndirectX 2
+   161                          modeIndY = 4 ; 4 IndirectY 2
+   162                          modeRel  = 5 ; 5 Relative 2
+   163                          modeZP   = 6 ; 6 ZeroPage 2
+   164                          modeZPX  = 7 ; 7 ZeroPageX 2
+   165                          modeZPY  = 8 ; 8 ZeroPageY 2
+   166                          modeAbs  = 9 ; 9 Absolute 3
+   167                          modeAbsX = 10 ; 10 AbsoluteX 3
+   168                          modeAbsY = 11 ; 11 AbsoluteY 3
+   169                          modeInd  = 12 ; 12 Indirect 3
+   170                          
+   171                          ; opcode table of byte values (opcodes), instructions, and addressing modes
+   172                          nopcodes = 151
+   173  c158 0001050608090a0d...opcodes !byte $00,$01,$05,$06,$08,$09,$0A,$0D,$0E,$10,$11,$15,$16,$18,$19,$1D,$1E,$20,$21,$24,$25,$26,$28,$29,$2A,$2C,$2D,$2E,$30,$31,$35,$36,$38,$39,$3D,$3E,$40,$41,$45,$46,$48,$49,$4A,$4C,$4D,$4E,$50,$51,$55,$56,$58,$59,$5D,$5E,$60,$61,$65,$66,$68,$69,$6A,$6C,$6D,$6E,$70,$71,$75,$76,$78,$79,$7D,$7E,$81,$84,$85,$86,$88,$8A,$8C,$8D,$8E,$90,$91,$94,$95,$96,$98,$99,$9A,$9D,$A0,$A1,$A2,$A4,$A5,$A6,$A8,$A9,$AA,$AC,$AD,$AE,$B0,$B1,$B4,$B5,$B6,$B8,$B9,$BA,$BC,$BD,$BE,$C0,$C1,$C4,$C5,$C6,$C8,$C9,$CA,$CC,$CD,$CE,$D0,$D1,$D5,$D6,$D8,$D9,$DD,$DE,$E0,$E1,$E4,$E5,$E6,$E8,$E9,$EA,$EC,$ED,$EE,$F0,$F1,$F5,$F6,$F8,$F9,$FD,$FE
+   174  c1ef 0a22220224220222...instidx !byte $0A,$22,$22,$02,$24,$22,$02,$22,$02,$09,$22,$22,$02,$0D,$22,$22,$02,$1C,$01,$06,$01,$27,$26,$01,$27,$06,$01,$27,$07,$01,$01,$27,$2C,$01,$01,$27,$29,$17,$17,$20,$23,$17,$20,$1B,$17,$20,$0B,$17,$17,$20,$0F,$17,$17,$20,$2A,$00,$00,$28,$25,$00,$28,$1B,$00,$28,$0C,$00,$00,$28,$2E,$00,$00,$28,$2F,$31,$2F,$30,$16,$35,$31,$2F,$30,$03,$2F,$31,$2F,$30,$37,$2F,$36,$2F,$1F,$1D,$1E,$1F,$1D,$1E,$33,$1D,$32,$1F,$1D,$1E,$04,$1D,$1F,$1D,$1E,$10,$1D,$34,$1F,$1D,$1E,$13,$11,$13,$11,$14,$1A,$11,$15,$13,$11,$14,$08,$11,$11,$14,$0E,$11,$11,$14,$12,$2B,$12,$2B,$18,$19,$2B,$21,$12,$2B,$18,$05,$2B,$2B,$18,$2D,$2B,$2B,$18
+   175  c286 0103060601020009...modeidx !byte $01,$03,$06,$06,$01,$02,$00,$09,$09,$05,$04,$07,$07,$01,$0B,$0A,$0A,$09,$03,$06,$06,$06,$01,$02,$00,$09,$09,$09,$05,$04,$07,$07,$01,$0B,$0A,$0A,$01,$03,$06,$06,$01,$02,$00,$09,$09,$09,$05,$04,$07,$07,$01,$0B,$0A,$0A,$01,$03,$06,$06,$01,$02,$00,$0C,$09,$09,$05,$04,$07,$07,$01,$0B,$0A,$0A,$03,$06,$06,$06,$01,$01,$09,$09,$09,$05,$04,$07,$07,$08,$01,$0B,$01,$0A,$02,$03,$02,$06,$06,$06,$01,$02,$01,$09,$09,$09,$05,$04,$07,$07,$08,$01,$0B,$01,$0A,$0A,$0B,$02,$03,$06,$06,$06,$01,$02,$01,$09,$09,$09,$05,$04,$07,$07,$01,$0B,$0A,$0A,$02,$03,$06,$06,$06,$01,$02,$01,$09,$09,$09,$05,$04,$07,$07,$01,$0B,$0A,$0A
+   176  c31d 0102020201020103...lengths !byte $01,$02,$02,$02,$01,$02,$01,$03,$03,$02,$02,$02,$02,$01,$03,$03,$03,$03,$02,$02,$02,$02,$01,$02,$01,$03,$03,$03,$02,$02,$02,$02,$01,$03,$03,$03,$01,$02,$02,$02,$01,$02,$01,$03,$03,$03,$02,$02,$02,$02,$01,$03,$03,$03,$01,$02,$02,$02,$01,$02,$01,$03,$03,$03,$02,$02,$02,$02,$01,$03,$03,$03,$02,$02,$02,$02,$01,$01,$03,$03,$03,$02,$02,$02,$02,$02,$01,$03,$01,$03,$02,$02,$02,$02,$02,$02,$01,$02,$01,$03,$03,$03,$02,$02,$02,$02,$02,$01,$03,$01,$03,$03,$03,$02,$02,$02,$02,$02,$01,$02,$01,$03,$03,$03,$02,$02,$02,$02,$01,$03,$03,$03,$02,$02,$02,$02,$02,$01,$02,$01,$03,$03,$03,$02,$02,$02,$02,$01,$03,$03,$03
+   177                          
