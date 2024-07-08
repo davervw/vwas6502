@@ -397,9 +397,9 @@ MIT LICENSE
                 Console.WriteLine("help or ? followed by a keyword will give examples of use");
                 continue;
             }
-            if (words[0] == "*" && words[1] == "=" && ParseArgument(words[2], out pc, 2))
+            if (words.Count == 3 && words[0] == "*" && words[1] == "=" && ParseArgument(words[2], out pc, 2))
                 continue;
-            if (words[0] == ".ORG" && ParseArgument(words[1], out pc, 2))
+            if (words.Count == 2 && words[0] == ".ORG" && ParseArgument(words[1], out pc, 2))
                 continue;
             if (words[0].Length > 3)
             {
