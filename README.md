@@ -8,4 +8,6 @@ This repository consists of several parts.
 
 2. [6502 hosted disassembler](src/6502/README.md) On the path of creating an assembler is creating a disassembler.  Originally developed and tested on C64, using only character out so is trivial to port to another 6502 system.
 
-3. To be continued...
+3. Ported this 6502 disassembler to [WozMon for Commodore](https://github.com/davervw/wozmon_cbm/tree/main) and [patches for Apple 1](https://github.com/davervw/wozmon_cbm/blob/main/vwas6502.hex) related systems.
+
+4. To be continued...
