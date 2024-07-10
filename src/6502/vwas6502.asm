@@ -27,7 +27,55 @@
 ;; SOFTWARE.
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-*=$c000
+;; VWAS2024 (C) 2024 DAVID R. VAN WAGNER
+;; MIT LICENSE DAVEVW.COM
+;; _
+;; INTERACTIVE SYNTAX >>> PLANNED, work in progress <<<
+;; (WOZMON SIMILAR - note if wozmon present, could leverage existing code)
+;; 1000 (display memory at $1000)
+;; 1000.2000 (display memory range $1000 to $2000)
+;; 1000 r (JMP $1000)
+;; 1000: 01 02 03 (modify memory)
+;; (NEW SYNTAX)
+;; 1000 d (disassemble starting at, interactive until q or ESC)
+;; 1000 a (assemble starting at, interactive until empty line) 
+;; 1000.2000 "text" ? (search for text in address range inclusive)
+;; 1000.2000 A9 FF ? (search for byte sequence in address range inclusive)
+;; 1000.2000 3000 m (move bytes $1000-$2000 inclusive to $3000, left/right move as appropriate)
+;; 1000.2000: 01 02 03 (fill bytes to inclusive address range)
+;; . (display registers, VICE format or custom? screen editor changeable?)
+;; .A 00 (change register, replace A with X, Y, SP, PC, SR, N, V, B, D, I, Z, C as appropriate)
+;; 1000.2000 "filename" 08 save (save range of bytes from $1000 up to not including $2000, Commodore drive address is optional, can abbreviate to s)
+;; 1000 "filename" 08 load (load absolute, address optional, drive address is optional, can abbreviate to l)
+;; ? (commands help)
+;; ? a (list instructions available)
+;; ? adc (assembler addressing modes examples for a specific instruction, replace adc with desired instruction)
+;; ? mode (show addressing modes example syntax for 6502)
+;;
+;; (INTERACTIVE ASSEMBLER)
+;; 1000 _
+;;      ADC #$12
+;; 1000 69 12    ADC #$12
+;; 1002 _
+;;      JSR $1234
+;; 1002 20 34 12 JSR $1234
+;; 1005 _
+;;      RTS
+;; 1005 60       RTS
+;; 1006 _
+;;      XYZ
+;;      XYZ ?
+;; 1006 _
+;; _
+;;
+;; line editor version (Commodore) can revise address, and can overwrite input line with results of assembly
+;; and can cursor up to revise, 
+;;
+;; can also assume assembler mode on the fly regardless if line editor or raw terminal if see instruction name after address, so a command is superfluous
+;;
+
+; global
+inputbuf=$0200
 
 ; kernal/system calls
 charout=$ffd2
@@ -42,7 +90,7 @@ mode=$24
 size=$25
 ptr3=$26 ; and $27
 
-; test
+*=$c000
 start:
     jmp +
 
@@ -62,7 +110,10 @@ test: ; all the addressing modes here for testing disassembly
     ldx $12,y
     !byte $FF ; unknown
 
-+   lda #<start
++   lda #<copyright
+    ldx #>copyright
+    jsr strout   
+    lda #<start
     ldx #>start
     sta ptr1
     stx ptr1+1
@@ -378,6 +429,77 @@ display_memory:
     bcc --
     rts
 
+ignorespc:
+    ; input pointer first points to R when execution comes from wozmon
+--  iny ; advance input pointer
+    beq + ; way too far
+    lda inputbuf,y
+    and #$7F
+    bne +
+-   sec ; error
+    rts
++   cmp #$20
+    beq --
+    clc ; okay
+    rts
+    
+    inputhexword:
+    jsr inputhexbyte
+    bcs ++
+    sta ptr1 ; assume one byte
+    lda #0
+    sta ptr1+1 ; extend to 16 bits
+    jsr inputhexbyte
+    bcs +
+    ldx ptr1 ; two bytes so shift the bytes
+    stx ptr1+1
+    sta ptr1
++   clc
+++  rts
+
+inputhexbyte:
+    jsr inputhexnybble
+    bcs +
+    sta tmp
+    jsr inputhexnybble
+    bcs +
+    asl tmp
+    asl tmp
+    asl tmp
+    asl tmp
+    ora tmp
++   rts
+
+inputhexnybble:
+    lda $0200,y
+    and #$7F
+    sec
+    sbc #$30
+    bcc ++
+    cmp #10
+    bcc +
+    sbc #7
+    bcc ++
+    cmp #10
+    bcc ++
+    cmp #16
+    bcs ++
++   iny
+    rts
+++  sec
+    rts
+
+strout:
+    sta ptr3
+    stx ptr3+1
+    ldy #0
+-   lda (ptr3),y
+    beq +
+    jsr charout
+    iny
+    bne -
++   rts
+
 ; charout: ; for debugging, wait for scan line to pass over entire screen at least once
 ;     jsr $ffd2
 ;     pha
@@ -416,10 +538,27 @@ mode_jmptable:
 !word dispModeAbsY-1 ; 11 AbsoluteY 3
 !word dispModeInd-1 ; 12 Indirect 3
 
+mode_examples:
+!text "A", 0 ; 0 Accumulator
+!text "", 0 ; 1 None
+!text "#$12", 0 ; 2 Immediate
+!text "($12,X)", 0 ; 3 IndirectX
+!text "($12),Y", 0 ; 4 IndirectY
+!text "$1234 (-128 to +127)", 0 ; 5 Relative
+!text "$12", 0 ; 6 ZeroPage
+!text "$12,X", 0 ; 7 ZeroPageX
+!text "$12,Y", 0 ; 8 ZeroPageY
+!text "$1234", 0 ; 9 Absolute
+!text "$1234,X", 0 ; 10 AbsoluteX
+!text "$1234,Y", 0 ; 11 AbsoluteY
+!text "($1234)", 0 ; 12 Indirect
+
 ; opcode table of byte values (opcodes), instructions, and addressing modes
 nopcodes = 151
 opcodes !byte $00,$01,$05,$06,$08,$09,$0A,$0D,$0E,$10,$11,$15,$16,$18,$19,$1D,$1E,$20,$21,$24,$25,$26,$28,$29,$2A,$2C,$2D,$2E,$30,$31,$35,$36,$38,$39,$3D,$3E,$40,$41,$45,$46,$48,$49,$4A,$4C,$4D,$4E,$50,$51,$55,$56,$58,$59,$5D,$5E,$60,$61,$65,$66,$68,$69,$6A,$6C,$6D,$6E,$70,$71,$75,$76,$78,$79,$7D,$7E,$81,$84,$85,$86,$88,$8A,$8C,$8D,$8E,$90,$91,$94,$95,$96,$98,$99,$9A,$9D,$A0,$A1,$A2,$A4,$A5,$A6,$A8,$A9,$AA,$AC,$AD,$AE,$B0,$B1,$B4,$B5,$B6,$B8,$B9,$BA,$BC,$BD,$BE,$C0,$C1,$C4,$C5,$C6,$C8,$C9,$CA,$CC,$CD,$CE,$D0,$D1,$D5,$D6,$D8,$D9,$DD,$DE,$E0,$E1,$E4,$E5,$E6,$E8,$E9,$EA,$EC,$ED,$EE,$F0,$F1,$F5,$F6,$F8,$F9,$FD,$FE
 instidx !byte $0A,$22,$22,$02,$24,$22,$02,$22,$02,$09,$22,$22,$02,$0D,$22,$22,$02,$1C,$01,$06,$01,$27,$26,$01,$27,$06,$01,$27,$07,$01,$01,$27,$2C,$01,$01,$27,$29,$17,$17,$20,$23,$17,$20,$1B,$17,$20,$0B,$17,$17,$20,$0F,$17,$17,$20,$2A,$00,$00,$28,$25,$00,$28,$1B,$00,$28,$0C,$00,$00,$28,$2E,$00,$00,$28,$2F,$31,$2F,$30,$16,$35,$31,$2F,$30,$03,$2F,$31,$2F,$30,$37,$2F,$36,$2F,$1F,$1D,$1E,$1F,$1D,$1E,$33,$1D,$32,$1F,$1D,$1E,$04,$1D,$1F,$1D,$1E,$10,$1D,$34,$1F,$1D,$1E,$13,$11,$13,$11,$14,$1A,$11,$15,$13,$11,$14,$08,$11,$11,$14,$0E,$11,$11,$14,$12,$2B,$12,$2B,$18,$19,$2B,$21,$12,$2B,$18,$05,$2B,$2B,$18,$2D,$2B,$2B,$18
 modeidx !byte $01,$03,$06,$06,$01,$02,$00,$09,$09,$05,$04,$07,$07,$01,$0B,$0A,$0A,$09,$03,$06,$06,$06,$01,$02,$00,$09,$09,$09,$05,$04,$07,$07,$01,$0B,$0A,$0A,$01,$03,$06,$06,$01,$02,$00,$09,$09,$09,$05,$04,$07,$07,$01,$0B,$0A,$0A,$01,$03,$06,$06,$01,$02,$00,$0C,$09,$09,$05,$04,$07,$07,$01,$0B,$0A,$0A,$03,$06,$06,$06,$01,$01,$09,$09,$09,$05,$04,$07,$07,$08,$01,$0B,$01,$0A,$02,$03,$02,$06,$06,$06,$01,$02,$01,$09,$09,$09,$05,$04,$07,$07,$08,$01,$0B,$01,$0A,$0A,$0B,$02,$03,$06,$06,$06,$01,$02,$01,$09,$09,$09,$05,$04,$07,$07,$01,$0B,$0A,$0A,$02,$03,$06,$06,$06,$01,$02,$01,$09,$09,$09,$05,$04,$07,$07,$01,$0B,$0A,$0A
+
+copyright !text 13,145,"VWAS2024 (C) 2024 DAVID R. VAN WAGNER", 13, "MIT LICENSE DAVEVW.COM", 157, 13, 0
 
 finish = *
