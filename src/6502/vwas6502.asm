@@ -95,9 +95,12 @@ count=$a3
 
 *=$c000
 start:
-    jsr inputline
+    lda #<copyright
+    ldx #>copyright
+    jsr strout
+-   jsr inputline
     jsr parseline
-    jmp start
+    jmp -
 
 test: ; all the addressing modes here for testing disassembly
     nop
@@ -552,23 +555,98 @@ executeaddr1:
     jsr chkfilename
     bne e
     beq executeloadfilename
-    brk ; shouldn't get here
+    brk ; will never get here
+
+executeaddr12:
+    cpy size
+    bne +
+    jmp executedisplay12
++   jmp reportnotimplemented
+
+executedisplay1:
+    lda ptr1
+    sta ptr2
+    lda ptr1+1
+    sta ptr2+1
+    ; fall through executedisplay12
+
+executedisplay12:
+    lda #$ff
+    sta count
+-   inc count
+    lda count
+    and #$07
+    bne +
+    lda #13
+    jsr charout
+    lda ptr1
+    ldx ptr1+1
+    jsr disphexword
+    lda #':'
+    jsr charout
+    lda #' '
+    jsr charout
++   ldy #0
+    lda (ptr1),y
+    jsr disphexbyte
+    lda #' '
+    jsr charout
+    inc ptr1
+    bne +
+    inc ptr1+1
+    beq ++
++   jsr compareptrs
+    bcc -
+    beq -
+++  lda #13
+    jmp charout
+
+executemodify:
+    jsr skipspaces
+    cpy size
+    beq ++
+    jsr chkhexbyte
+    beq +
+    jmp e
++   sty tmp
+    ldy #0
+    sta (ptr1),y
+    inc ptr1
+    bne +
+    inc ptr1+1
++   ldy tmp
+    bne executemodify
+++  jmp newline
 
 executeloadfilename:
 executedot:
 executeaddr1cmd:
-executeaddr12:
 executehelp:
-executedisplay1:
-executemodify:
     jmp reportnotimplemented
 
 executeassemble:
-executerun:
     pla ; remove low byte return address
     pla ; return high byte return address
     jsr newline
     jmp reportnotimplemented
+
+executerun:
+    pla ; remove low byte return address
+    pla ; return high byte return address
+    pla ; again, we're really not returning
+    pla ; again, we're really not returning
+    jsr newline
+    sec
+    lda ptr1
+    sbc #1
+    sta ptr1
+    bcs +
+    dec ptr1+1
++   lda ptr1+1
+    pha
+    lda ptr1
+    pha
+    rts
 
 executedisassemble:
     pla ; remove low byte return address
@@ -641,9 +719,23 @@ chkfilename:
     bne -
 ++  rts
 
+chkhexbyte:
+    jsr inputhexbyte
+    jsr +
+    bne ++ ; Z false (NE) if failed checks
+    cpy size
+    beq ++ ; Z true (EQ) if end of input
+    sta tmp
+    lda inputbuf,y
+    cmp #$20
+    bne ++ ; Z false (NE) if not space
+    lda tmp
+    ldx #0 ; Z true (EQ) is space delimeter
+++  rts
+
 chkhexaddr1:
     jsr inputhexword
-    ldx #0 ; Z true (EQ)
++   ldx #0 ; Z true (EQ)
     bcc +
     inx ; Z false (NE)
 +   rts
