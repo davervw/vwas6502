@@ -81,486 +81,690 @@
     79                          
     80                          ; kernal/system calls
     81                          charout=$ffd2
-    82                          
-    83                          ; zeropage
-    84                          ptr1=$fb ; and $fc
-    85                          ptr2=$fd ; and $fe
-    86                          tmp=$ff
-    87                          opidx=$22
-    88                          inidx=$23
-    89                          mode=$24
-    90                          size=$25
-    91                          ptr3=$26 ; and $27
-    92                          
-    93                          *=$c000
-    94                          start:
-    95  c000 4c20c0                 jmp +
-    96                          
-    97                          test: ; all the addressing modes here for testing disassembly
-    98  c003 ea                     nop
-    99  c004 ad3412                 lda $1234
-   100  c007 bd3412                 lda $1234,x
-   101  c00a b93412                 lda $1234,y
-   102  c00d 0a                     asl
-   103  c00e a912                   lda #$12
-   104  c010 a112                   lda ($12,x)
-   105  c012 b112                   lda ($12),y
-   106  c014 6c3412                 jmp ($1234)
-   107  c017 d0fe               -   bne -
-   108  c019 a512                   lda $12
-   109  c01b b512                   lda $12,x
-   110  c01d b612                   ldx $12,y
-   111  c01f ff                     !byte $FF ; unknown
-   112                          
-   113  c020 a9ac               +   lda #<copyright
-   114  c022 a2c5                   ldx #>copyright
-   115  c024 20b8c2                 jsr strout   
-   116  c027 a900                   lda #<start
-   117  c029 a2c0                   ldx #>start
-   118  c02b 85fb                   sta ptr1
-   119  c02d 86fc                   stx ptr1+1
-   120  c02f a9c9                   lda #<end
-   121  c031 a2c2                   ldx #>end
-   122  c033 85fd                   sta ptr2
-   123  c035 86fe                   stx ptr2+1
-   124  c037 204dc0                 jsr disassemble
-   125  c03a a5fd                   lda ptr2
-   126  c03c a6fe                   ldx ptr2+1
-   127  c03e 85fb                   sta ptr1
-   128  c040 86fc                   stx ptr1+1
-   129  c042 a9ed                   lda #<finish
-   130  c044 a2c5                   ldx #>finish
-   131  c046 85fd                   sta ptr2
-   132  c048 86fe                   stx ptr2+1
-   133  c04a 4c25c2                 jmp display_memory
-   134                          
-   135                          disassemble:
-   136  c04d a000               -   ldy #0
-   137  c04f b1fb                   lda (ptr1),y
-   138  c051 2077c0                 jsr find_opcode
-   139  c054 20d0c0                 jsr disp_current
-   140  c057 a525                   lda size
-   141  c059 1002                   bpl +
-   142  c05b a901                   lda #1
-   143  c05d 18                 +   clc
-   144  c05e 65fb                   adc ptr1
-   145  c060 85fb                   sta ptr1
-   146  c062 9002                   bcc +
-   147  c064 e6fc                   inc ptr1+1
-   148  c066 206cc0             +   jsr compareptrs
-   149  c069 90e2                   bcc -
-   150  c06b 60                     rts
-   151                          
-   152                          compareptrs:
-   153  c06c a5fc                   lda ptr1+1
-   154  c06e c5fe                   cmp ptr2+1
-   155  c070 d004                   bne +
-   156  c072 a5fb                   lda ptr1
-   157  c074 c5fd                   cmp ptr2
-   158  c076 60                 +   rts
-   159                          
-   160                          find_opcode: ; INPUT: .A opcode byte, OUTPUT: C flag set if found, .A instruction index, .X opcode index, .Y mode, otherwise C clear, and .A/.X/.Y all $FF
-   161                          ; and properties updated in ZP globals size,inidx,opidx,mode
-   162  c077 a001                   ldy #1
-   163  c079 8425                   sty size
-   164  c07b a097                   ldy #nopcodes
-   165  c07d a296                   ldx #nopcodes-1
-   166  c07f dde7c3             -   cmp opcodes,x
-   167  c082 f00b                   beq +
-   168  c084 ca                     dex
-   169  c085 88                     dey
-   170  c086 d0f7                   bne -
-   171  c088 18                     clc
-   172  c089 a9ff                   lda #$FF
-   173  c08b aa                     tax
-   174  c08c a8                     tay
-   175  c08d 9013                   bcc ++
-   176  c08f bd7ec4             +   lda instidx, x
-   177  c092 bc15c5                 ldy modeidx, x
-   178  c095 c002                   cpy #2 // Immediate
-   179  c097 9008                   bcc +
-   180  c099 e625                   inc size
-   181  c09b c009                   cpy #9 // Absolute
-   182  c09d 9002                   bcc +
-   183  c09f e625                   inc size
-   184  c0a1 38                 +   sec
-   185  c0a2 8523               ++  sta inidx
-   186  c0a4 8622                   stx opidx
-   187  c0a6 8424                   sty mode
-   188  c0a8 60                     rts
-   189                          
-   190                          disp_opcode: ; .A opcode byte
-   191  c0a9 2077c0                 jsr find_opcode
-   192  c0ac 8a                     txa
-   193                              ; fall through to display instruction
-   194                          
-   195                          dispinst: ; .A instruction index 0..55
-   196  c0ad aa                     tax
-   197  c0ae e038                   cpx #ninst
-   198  c0b0 b012                   bcs +
-   199  c0b2 bdcac2                 lda inst0, x
-   200  c0b5 20d2ff                 jsr charout
-   201  c0b8 bd02c3                 lda inst1, x
-   202  c0bb 20d2ff                 jsr charout
-   203  c0be bd3ac3                 lda inst2, x
-   204  c0c1 4cd2ff                 jmp charout
-   205  c0c4 a93f               +   lda #'?'
-   206  c0c6 20d2ff                 jsr charout
-   207  c0c9 20d2ff                 jsr charout
-   208  c0cc 20d2ff                 jsr charout
-   209  c0cf 60                     rts
-   210                          
-   211                          disp_current:
-   212  c0d0 a5fb                   lda ptr1
-   213  c0d2 a6fc                   ldx ptr1+1
-   214  c0d4 2009c2                 jsr disphexword
-   215  c0d7 a920                   lda #$20
-   216  c0d9 20d2ff                 jsr charout
-   217  c0dc a000                   ldy #0
-   218  c0de a625                   ldx size
-   219  c0e0 b1fb               -   lda (ptr1),y
-   220  c0e2 200fc2                 jsr disphexbyte
-   221  c0e5 a920                   lda #$20
-   222  c0e7 20d2ff                 jsr charout
-   223  c0ea c8                     iny
-   224  c0eb ca                     dex
-   225  c0ec d0f2                   bne -
-   226  c0ee c003               -   cpy #3
-   227  c0f0 f00e                   beq +
-   228  c0f2 a920                   lda #$20
-   229  c0f4 20d2ff                 jsr charout
-   230  c0f7 20d2ff                 jsr charout
-   231  c0fa 20d2ff                 jsr charout
-   232  c0fd c8                     iny
-   233  c0fe d0ee                   bne -
-   234  c100 a523               +   lda inidx
-   235  c102 20adc0                 jsr dispinst
-   236  c105 a920                   lda #$20
-   237  c107 20d2ff                 jsr charout
-   238  c10a 2012c1                 jsr disp_mode
-   239  c10d a90d                   lda #13
-   240  c10f 4cd2ff                 jmp charout
-   241                          
-   242                          disp_mode
-   243  c112 a524                   lda mode
-   244  c114 c90d                   cmp #13
-   245  c116 b00a                   bcs +
-   246  c118 0a                     asl
-   247  c119 aa                     tax
-   248  c11a bd73c3                 lda mode_jmptable+1,x
-   249  c11d 48                     pha
-   250  c11e bd72c3                 lda mode_jmptable,x
-   251  c121 48                     pha
-   252  c122 60                 +   rts
-   253                          
-   254                          dispModeAcc:
-   255  c123 a941                   lda #'A'
-   256  c125 4cd2ff                 jmp charout
-   257                          
-   258                          dispModeNone:
-   259  c128 60                     rts
-   260                          
-   261                          dispModeImm:
-   262  c129 a923                   lda #'#'
-   263  c12b 20d2ff                 jsr charout
-   264                          dispModeZP:
-   265  c12e a924                   lda #'$'
-   266  c130 20d2ff                 jsr charout
-   267  c133 a001                   ldy #1
-   268  c135 b1fb                   lda (ptr1),y
-   269  c137 4c0fc2                 jmp disphexbyte
-   270                          
-   271                          dispModeIndX:
-   272  c13a a928                   lda #'('
-   273  c13c 20d2ff                 jsr charout
-   274  c13f a924                   lda #'$'
-   275  c141 20d2ff                 jsr charout
-   276  c144 a001                   ldy #1
-   277  c146 b1fb                   lda (ptr1),y
-   278  c148 200fc2                 jsr disphexbyte
-   279  c14b a92c                   lda #','
-   280  c14d 20d2ff                 jsr charout
-   281  c150 a958                   lda #'X'
-   282  c152 20d2ff                 jsr charout
-   283  c155 a929                   lda #')'
-   284  c157 4cd2ff                 jmp charout
-   285                          
-   286                          dispModeIndY:
-   287  c15a a928                   lda #'('
-   288  c15c 20d2ff                 jsr charout
-   289  c15f a924                   lda #'$'
-   290  c161 20d2ff                 jsr charout
-   291  c164 a001                   ldy #1
-   292  c166 b1fb                   lda (ptr1),y
-   293  c168 200fc2                 jsr disphexbyte
-   294  c16b a929                   lda #')'
-   295  c16d 20d2ff                 jsr charout
-   296  c170 a92c                   lda #','
-   297  c172 20d2ff                 jsr charout
-   298  c175 a959                   lda #'Y'
-   299  c177 4cd2ff                 jmp charout
-   300                          
-   301                          dispModeRel:
-   302  c17a a924                   lda #'$'
-   303  c17c 20d2ff                 jsr charout
-   304  c17f 18                     clc
-   305  c180 a5fb                   lda ptr1
-   306  c182 6902                   adc #2
-   307  c184 8526                   sta ptr3
-   308  c186 a5fc                   lda ptr1+1
-   309  c188 6900                   adc #0
-   310  c18a 8527                   sta ptr3+1
-   311  c18c a001                   ldy #1
-   312  c18e b1fb                   lda (ptr1),y
-   313  c190 1014                   bpl +
-   314                              ; I'm not sure how to successfully navigate page boundries adding signed byte to unsigned byte, so I'm subtracting unsigned bytes instead
-   315  c192 49ff                   eor #$FF ; inverse
-   316  c194 18                     clc
-   317  c195 6901                   adc #1 ; complete getting absolute value from two's complement
-   318  c197 85ff                   sta tmp
-   319  c199 38                     sec
-   320  c19a a526                   lda ptr3
-   321  c19c e5ff                   sbc tmp
-   322  c19e 8526                   sta ptr3
-   323  c1a0 b00d                   bcs ++
-   324  c1a2 c627                   dec ptr3+1
-   325  c1a4 9009                   bcc ++
-   326  c1a6 18                 +   clc ; simple case of adding
-   327  c1a7 6526                   adc ptr3
-   328  c1a9 8526                   sta ptr3
-   329  c1ab 9002                   bcc ++
-   330  c1ad e627                   inc ptr3+1
-   331  c1af a526               ++  lda ptr3
-   332  c1b1 a627                   ldx ptr3+1
-   333  c1b3 4c09c2                 jmp disphexword
-   334                          
-   335                          dispModeZPX:
-   336  c1b6 202ec1                 jsr dispModeZP
-   337  c1b9 a92c                   lda #','
-   338  c1bb 20d2ff                 jsr charout
-   339  c1be a958                   lda #'X'
-   340  c1c0 4cd2ff                 jmp charout
-   341                          
-   342                          dispModeZPY:
-   343  c1c3 202ec1                 jsr dispModeZP
-   344  c1c6 a92c                   lda #','
-   345  c1c8 20d2ff                 jsr charout
-   346  c1cb a959                   lda #'Y'
-   347  c1cd 4cd2ff                 jmp charout
-   348                          
-   349                          dispModeAbs:
-   350  c1d0 a924                   lda #'$'
-   351  c1d2 20d2ff                 jsr charout
-   352  c1d5 a001                   ldy #1
-   353  c1d7 b1fb                   lda (ptr1),y
-   354  c1d9 48                     pha
-   355  c1da c8                     iny
-   356  c1db b1fb                   lda (ptr1),y
-   357  c1dd aa                     tax
-   358  c1de 68                     pla
-   359  c1df 4c09c2                 jmp disphexword
-   360                          
-   361                          dispModeAbsX:
-   362  c1e2 20d0c1                 jsr dispModeAbs
-   363  c1e5 a92c                   lda #','
-   364  c1e7 20d2ff                 jsr charout
-   365  c1ea a958                   lda #'X'
-   366  c1ec 4cd2ff                 jmp charout
-   367                          
-   368                          dispModeAbsY:
-   369  c1ef 20d0c1                 jsr dispModeAbs
-   370  c1f2 a92c                   lda #','
-   371  c1f4 20d2ff                 jsr charout
-   372  c1f7 a959                   lda #'Y'
-   373  c1f9 4cd2ff                 jmp charout
-   374                          
-   375                          dispModeInd:
-   376  c1fc a928                   lda #'('
-   377  c1fe 20d2ff                 jsr charout
-   378  c201 20d0c1                 jsr dispModeAbs
-   379  c204 a929                   lda #')'
-   380  c206 4cd2ff                 jmp charout
-   381                          
-   382                          disphexword: ; .A low, .X high, 0000..FFFF
-   383  c209 48                     pha
-   384  c20a 8a                     txa
-   385  c20b 200fc2                 jsr disphexbyte
-   386  c20e 68                     pla
-   387                              ;fall through to call again
-   388                          
-   389                          disphexbyte: ; .A 00..FF
-   390  c20f 48                     pha
-   391  c210 4a                     lsr
-   392  c211 4a                     lsr
-   393  c212 4a                     lsr
-   394  c213 4a                     lsr
-   395  c214 2018c2                 jsr disphexnybble
-   396  c217 68                     pla
-   397                              ;fall through to call again
-   398                          
-   399                          disphexnybble: ; .A 0..F
-   400  c218 290f                   and #$0F
-   401  c21a 0930                   ora #$30
-   402  c21c c93a                   cmp #$3A
-   403  c21e 9002                   bcc +
-   404  c220 6906                   adc #$06
-   405  c222 4cd2ff             +   jmp charout
-   406                          
-   407                          display_memory:
-   408  c225 a5fb               --  lda ptr1
-   409  c227 a6fc                   ldx ptr1+1
-   410  c229 2009c2                 jsr disphexword
-   411  c22c a920                   lda #$20
-   412  c22e 20d2ff                 jsr charout
-   413  c231 206cc0             -   jsr compareptrs
-   414  c234 b00c                   bcs +
-   415  c236 a000                   ldy #0
-   416  c238 b1fb                   lda (ptr1),y
-   417  c23a 200fc2                 jsr disphexbyte
-   418  c23d a920                   lda #$20
-   419  c23f 20d2ff                 jsr charout
-   420  c242 e6fb               +   inc ptr1
-   421  c244 d002                   bne +
-   422  c246 e6fc                   inc ptr1+1
-   423  c248 a5fb               +   lda ptr1
-   424  c24a 2907                   and #$07
-   425  c24c d0e3                   bne -
-   426  c24e a90d                   lda #13
-   427  c250 20d2ff                 jsr charout
-   428  c253 206cc0                 jsr compareptrs
-   429  c256 90cd                   bcc --
-   430  c258 60                     rts
-   431                          
-   432                          ignorespc:
-   433                              ; input pointer first points to R when execution comes from wozmon
-   434  c259 c8                 --  iny ; advance input pointer
-   435  c25a f009                   beq + ; way too far
-   436  c25c b90002                 lda inputbuf,y
-   437  c25f 297f                   and #$7F
-   438  c261 d002                   bne +
-   439  c263 38                 -   sec ; error
-   440  c264 60                     rts
-   441  c265 c920               +   cmp #$20
-   442  c267 f0f0                   beq --
-   443  c269 18                     clc ; okay
-   444  c26a 60                     rts
-   445                              
-   446                              inputhexword:
-   447  c26b 2083c2                 jsr inputhexbyte
-   448  c26e b012                   bcs ++
-   449  c270 85fb                   sta ptr1 ; assume one byte
-   450  c272 a900                   lda #0
-   451  c274 85fc                   sta ptr1+1 ; extend to 16 bits
-   452  c276 2083c2                 jsr inputhexbyte
-   453  c279 b006                   bcs +
-   454  c27b a6fb                   ldx ptr1 ; two bytes so shift the bytes
-   455  c27d 86fc                   stx ptr1+1
-   456  c27f 85fb                   sta ptr1
-   457  c281 18                 +   clc
-   458  c282 60                 ++  rts
-   459                          
-   460                          inputhexbyte:
-   461  c283 209ac2                 jsr inputhexnybble
-   462  c286 b011                   bcs +
-   463  c288 85ff                   sta tmp
-   464  c28a 209ac2                 jsr inputhexnybble
-   465  c28d b00a                   bcs +
-   466  c28f 06ff                   asl tmp
-   467  c291 06ff                   asl tmp
-   468  c293 06ff                   asl tmp
-   469  c295 06ff                   asl tmp
-   470  c297 05ff                   ora tmp
-   471  c299 60                 +   rts
-   472                          
-   473                          inputhexnybble:
-   474  c29a b90002                 lda $0200,y
-   475  c29d 297f                   and #$7F
-   476  c29f 38                     sec
-   477  c2a0 e930                   sbc #$30
-   478  c2a2 9012                   bcc ++
-   479  c2a4 c90a                   cmp #10
-   480  c2a6 900c                   bcc +
-   481  c2a8 e907                   sbc #7
-   482  c2aa 900a                   bcc ++
-   483  c2ac c90a                   cmp #10
-   484  c2ae 9006                   bcc ++
-   485  c2b0 c910                   cmp #16
-   486  c2b2 b002                   bcs ++
-   487  c2b4 c8                 +   iny
-   488  c2b5 60                     rts
-   489  c2b6 38                 ++  sec
-   490  c2b7 60                     rts
-   491                          
-   492                          strout:
-   493  c2b8 8526                   sta ptr3
-   494  c2ba 8627                   stx ptr3+1
-   495  c2bc a000                   ldy #0
-   496  c2be b126               -   lda (ptr3),y
-   497  c2c0 f006                   beq +
-   498  c2c2 20d2ff                 jsr charout
-   499  c2c5 c8                     iny
-   500  c2c6 d0f6                   bne -
-   501  c2c8 60                 +   rts
-   502                          
-   503                          ; charout: ; for debugging, wait for scan line to pass over entire screen at least once
-   504                          ;     jsr $ffd2
-   505                          ;     pha
-   506                          ; -   lda $d011
-   507                          ;     bpl -
-   508                          ; -   lda $d011
-   509                          ;     bmi -
-   510                          ; -   lda $d011
-   511                          ;     bpl -
-   512                          ; -   lda $d011
-   513                          ;     bmi -
-   514                          ;     pla
-   515                          ;     rts
-   516                          
-   517  c2c9 00                 end: brk
-   518                          
-   519                          ; instruction textual mnuemonic first, second, third letters (read down in source)
-   520                          ninst = 56
-   521  c2ca 4141414242424242...inst0 !text "AAABBBBBBBBBBCCCCCCCDDDEIIIJJLLLLNOPPPPRRRRSSSSSSSTTTTTT"
-   522  c302 444e53434345494d...inst1 !text "DNSCCEIMNPRVVLLLLMPPEEEONNNMSDDDSORHHLLOOTTBEEETTTAASXXY"
-   523  c33a 43444c4353515449...inst2 !text "CDLCSQTIELKCSCDIVPXYCXYRCXYPRAXYRPAAPAPLRISCCDIAXYXYXASA"
-   524                          
-   525                          ; 6502 addressing modes by index number and number of bytes per instruction shown at end of comment
-   526                          mode_jmptable:
-   527  c372 22c1               !word dispModeAcc-1; 0 Accumulator 1
-   528  c374 27c1               !word dispModeNone-1 ; 1 None 1
-   529  c376 28c1               !word dispModeImm-1 ; 2 Immediate 2
-   530  c378 39c1               !word dispModeIndX-1 ; 3 IndirectX 2
-   531  c37a 59c1               !word dispModeIndY-1 ; 4 IndirectY 2
-   532  c37c 79c1               !word dispModeRel-1 ; 5 Relative 2
-   533  c37e 2dc1               !word dispModeZP-1 ; 6 ZeroPage 2
-   534  c380 b5c1               !word dispModeZPX-1 ; 7 ZeroPageX 2
-   535  c382 c2c1               !word dispModeZPY-1 ; 8 ZeroPageY 2
-   536  c384 cfc1               !word dispModeAbs-1 ; 9 Absolute 3
-   537  c386 e1c1               !word dispModeAbsX-1 ; 10 AbsoluteX 3
-   538  c388 eec1               !word dispModeAbsY-1 ; 11 AbsoluteY 3
-   539  c38a fbc1               !word dispModeInd-1 ; 12 Indirect 3
-   540                          
-   541                          mode_examples:
-   542  c38c 4100               !text "A", 0 ; 0 Accumulator
-   543  c38e 00                 !text "", 0 ; 1 None
-   544  c38f 2324313200         !text "#$12", 0 ; 2 Immediate
-   545  c394 282431322c582900   !text "($12,X)", 0 ; 3 IndirectX
-   546  c39c 28243132292c5900   !text "($12),Y", 0 ; 4 IndirectY
-   547  c3a4 243132333420282d...!text "$1234 (-128 to +127)", 0 ; 5 Relative
-   548  c3b9 24313200           !text "$12", 0 ; 6 ZeroPage
-   549  c3bd 2431322c5800       !text "$12,X", 0 ; 7 ZeroPageX
-   550  c3c3 2431322c5900       !text "$12,Y", 0 ; 8 ZeroPageY
-   551  c3c9 243132333400       !text "$1234", 0 ; 9 Absolute
-   552  c3cf 24313233342c5800   !text "$1234,X", 0 ; 10 AbsoluteX
-   553  c3d7 24313233342c5900   !text "$1234,Y", 0 ; 11 AbsoluteY
-   554  c3df 2824313233342900   !text "($1234)", 0 ; 12 Indirect
-   555                          
-   556                          ; opcode table of byte values (opcodes), instructions, and addressing modes
-   557                          nopcodes = 151
-   558  c3e7 0001050608090a0d...opcodes !byte $00,$01,$05,$06,$08,$09,$0A,$0D,$0E,$10,$11,$15,$16,$18,$19,$1D,$1E,$20,$21,$24,$25,$26,$28,$29,$2A,$2C,$2D,$2E,$30,$31,$35,$36,$38,$39,$3D,$3E,$40,$41,$45,$46,$48,$49,$4A,$4C,$4D,$4E,$50,$51,$55,$56,$58,$59,$5D,$5E,$60,$61,$65,$66,$68,$69,$6A,$6C,$6D,$6E,$70,$71,$75,$76,$78,$79,$7D,$7E,$81,$84,$85,$86,$88,$8A,$8C,$8D,$8E,$90,$91,$94,$95,$96,$98,$99,$9A,$9D,$A0,$A1,$A2,$A4,$A5,$A6,$A8,$A9,$AA,$AC,$AD,$AE,$B0,$B1,$B4,$B5,$B6,$B8,$B9,$BA,$BC,$BD,$BE,$C0,$C1,$C4,$C5,$C6,$C8,$C9,$CA,$CC,$CD,$CE,$D0,$D1,$D5,$D6,$D8,$D9,$DD,$DE,$E0,$E1,$E4,$E5,$E6,$E8,$E9,$EA,$EC,$ED,$EE,$F0,$F1,$F5,$F6,$F8,$F9,$FD,$FE
-   559  c47e 0a22220224220222...instidx !byte $0A,$22,$22,$02,$24,$22,$02,$22,$02,$09,$22,$22,$02,$0D,$22,$22,$02,$1C,$01,$06,$01,$27,$26,$01,$27,$06,$01,$27,$07,$01,$01,$27,$2C,$01,$01,$27,$29,$17,$17,$20,$23,$17,$20,$1B,$17,$20,$0B,$17,$17,$20,$0F,$17,$17,$20,$2A,$00,$00,$28,$25,$00,$28,$1B,$00,$28,$0C,$00,$00,$28,$2E,$00,$00,$28,$2F,$31,$2F,$30,$16,$35,$31,$2F,$30,$03,$2F,$31,$2F,$30,$37,$2F,$36,$2F,$1F,$1D,$1E,$1F,$1D,$1E,$33,$1D,$32,$1F,$1D,$1E,$04,$1D,$1F,$1D,$1E,$10,$1D,$34,$1F,$1D,$1E,$13,$11,$13,$11,$14,$1A,$11,$15,$13,$11,$14,$08,$11,$11,$14,$0E,$11,$11,$14,$12,$2B,$12,$2B,$18,$19,$2B,$21,$12,$2B,$18,$05,$2B,$2B,$18,$2D,$2B,$2B,$18
-   560  c515 0103060601020009...modeidx !byte $01,$03,$06,$06,$01,$02,$00,$09,$09,$05,$04,$07,$07,$01,$0B,$0A,$0A,$09,$03,$06,$06,$06,$01,$02,$00,$09,$09,$09,$05,$04,$07,$07,$01,$0B,$0A,$0A,$01,$03,$06,$06,$01,$02,$00,$09,$09,$09,$05,$04,$07,$07,$01,$0B,$0A,$0A,$01,$03,$06,$06,$01,$02,$00,$0C,$09,$09,$05,$04,$07,$07,$01,$0B,$0A,$0A,$03,$06,$06,$06,$01,$01,$09,$09,$09,$05,$04,$07,$07,$08,$01,$0B,$01,$0A,$02,$03,$02,$06,$06,$06,$01,$02,$01,$09,$09,$09,$05,$04,$07,$07,$08,$01,$0B,$01,$0A,$0A,$0B,$02,$03,$06,$06,$06,$01,$02,$01,$09,$09,$09,$05,$04,$07,$07,$01,$0B,$0A,$0A,$02,$03,$06,$06,$06,$01,$02,$01,$09,$09,$09,$05,$04,$07,$07,$01,$0B,$0A,$0A
-   561                          
-   562  c5ac 0d91565741533230...copyright !text 13,145,"VWAS2024 (C) 2024 DAVID R. VAN WAGNER", 13, "MIT LICENSE DAVEVW.COM", 157, 13, 0
-   563                          
-   564                          finish = *
+    82                          charin=$ffcf ; screen editor
+    83                          getkey=$ffe4
+    84                          
+    85                          ; zeropage
+    86                          ptr1=$fb ; and $fc
+    87                          ptr2=$fd ; and $fe
+    88                          tmp=$ff
+    89                          opidx=$22
+    90                          inidx=$23
+    91                          mode=$24
+    92                          size=$25
+    93                          ptr3=$26 ; and $27
+    94                          count=$a3
+    95                          
+    96                          *=$c000
+    97                          start:
+    98  c000 20c5c2                 jsr inputline
+    99  c003 20d3c2                 jsr parseline
+   100  c006 4c00c0                 jmp start
+   101                          
+   102                          test: ; all the addressing modes here for testing disassembly
+   103  c009 ea                     nop
+   104  c00a ad3412                 lda $1234
+   105  c00d bd3412                 lda $1234,x
+   106  c010 b93412                 lda $1234,y
+   107  c013 0a                     asl
+   108  c014 a912                   lda #$12
+   109  c016 a112                   lda ($12,x)
+   110  c018 b112                   lda ($12),y
+   111  c01a 6c3412                 jmp ($1234)
+   112  c01d d0fe               -   bne -
+   113  c01f a512                   lda $12
+   114  c021 b512                   lda $12,x
+   115  c023 b612                   ldx $12,y
+   116  c025 ff                     !byte $FF ; unknown
+   117                          
+   118  c026 a9e2               +   lda #<copyright
+   119  c028 a2c6                   ldx #>copyright
+   120  c02a 20b4c2                 jsr strout   
+   121  c02d a900                   lda #<start
+   122  c02f a2c0                   ldx #>start
+   123  c031 85fb                   sta ptr1
+   124  c033 86fc                   stx ptr1+1
+   125  c035 a9ff                   lda #<end
+   126  c037 a2c3                   ldx #>end
+   127  c039 85fd                   sta ptr2
+   128  c03b 86fe                   stx ptr2+1
+   129  c03d 2053c0                 jsr disassemble
+   130  c040 a5fd                   lda ptr2
+   131  c042 a6fe                   ldx ptr2+1
+   132  c044 85fb                   sta ptr1
+   133  c046 86fc                   stx ptr1+1
+   134  c048 a954                   lda #<finish
+   135  c04a a2c7                   ldx #>finish
+   136  c04c 85fd                   sta ptr2
+   137  c04e 86fe                   stx ptr2+1
+   138  c050 4c33c2                 jmp display_memory
+   139                          
+   140                          disassemble:
+   141  c053 a918               --  lda #24
+   142  c055 85a3                   sta count
+   143  c057 a000               -   ldy #0
+   144  c059 b1fb                   lda (ptr1),y
+   145  c05b 2085c0                 jsr find_opcode
+   146  c05e 20dec0                 jsr disp_current
+   147  c061 a525                   lda size
+   148  c063 1002                   bpl +
+   149  c065 a901                   lda #1
+   150  c067 18                 +   clc
+   151  c068 65fb                   adc ptr1
+   152  c06a 85fb                   sta ptr1
+   153  c06c 9002                   bcc +
+   154  c06e e6fc                   inc ptr1+1
+   155  c070 c6a3               +   dec count
+   156  c072 d0e3                   bne -
+   157  c074 20ebc3                 jsr pagemore
+   158  c077 d0da                   bne --
+   159  c079 60                     rts
+   160                          
+   161                          compareptrs:
+   162  c07a a5fc                   lda ptr1+1
+   163  c07c c5fe                   cmp ptr2+1
+   164  c07e d004                   bne +
+   165  c080 a5fb                   lda ptr1
+   166  c082 c5fd                   cmp ptr2
+   167  c084 60                 +   rts
+   168                          
+   169                          find_opcode: ; INPUT: .A opcode byte, OUTPUT: C flag set if found, .A instruction index, .X opcode index, .Y mode, otherwise C clear, and .A/.X/.Y all $FF
+   170                          ; and properties updated in ZP globals size,inidx,opidx,mode
+   171  c085 a001                   ldy #1
+   172  c087 8425                   sty size
+   173  c089 a097                   ldy #nopcodes
+   174  c08b a296                   ldx #nopcodes-1
+   175  c08d dd1dc5             -   cmp opcodes,x
+   176  c090 f00b                   beq +
+   177  c092 ca                     dex
+   178  c093 88                     dey
+   179  c094 d0f7                   bne -
+   180  c096 18                     clc
+   181  c097 a9ff                   lda #$FF
+   182  c099 aa                     tax
+   183  c09a a8                     tay
+   184  c09b 9013                   bcc ++
+   185  c09d bdb4c5             +   lda instidx, x
+   186  c0a0 bc4bc6                 ldy modeidx, x
+   187  c0a3 c002                   cpy #2 // Immediate
+   188  c0a5 9008                   bcc +
+   189  c0a7 e625                   inc size
+   190  c0a9 c009                   cpy #9 // Absolute
+   191  c0ab 9002                   bcc +
+   192  c0ad e625                   inc size
+   193  c0af 38                 +   sec
+   194  c0b0 8523               ++  sta inidx
+   195  c0b2 8622                   stx opidx
+   196  c0b4 8424                   sty mode
+   197  c0b6 60                     rts
+   198                          
+   199                          disp_opcode: ; .A opcode byte
+   200  c0b7 2085c0                 jsr find_opcode
+   201  c0ba 8a                     txa
+   202                              ; fall through to display instruction
+   203                          
+   204                          dispinst: ; .A instruction index 0..55
+   205  c0bb aa                     tax
+   206  c0bc e038                   cpx #ninst
+   207  c0be b012                   bcs +
+   208  c0c0 bd00c4                 lda inst0, x
+   209  c0c3 20d2ff                 jsr charout
+   210  c0c6 bd38c4                 lda inst1, x
+   211  c0c9 20d2ff                 jsr charout
+   212  c0cc bd70c4                 lda inst2, x
+   213  c0cf 4cd2ff                 jmp charout
+   214  c0d2 a93f               +   lda #'?'
+   215  c0d4 20d2ff                 jsr charout
+   216  c0d7 20d2ff                 jsr charout
+   217  c0da 20d2ff                 jsr charout
+   218  c0dd 60                     rts
+   219                          
+   220                          disp_current:
+   221  c0de a5fb                   lda ptr1
+   222  c0e0 a6fc                   ldx ptr1+1
+   223  c0e2 2017c2                 jsr disphexword
+   224  c0e5 a920                   lda #$20
+   225  c0e7 20d2ff                 jsr charout
+   226  c0ea a000                   ldy #0
+   227  c0ec a625                   ldx size
+   228  c0ee b1fb               -   lda (ptr1),y
+   229  c0f0 201dc2                 jsr disphexbyte
+   230  c0f3 a920                   lda #$20
+   231  c0f5 20d2ff                 jsr charout
+   232  c0f8 c8                     iny
+   233  c0f9 ca                     dex
+   234  c0fa d0f2                   bne -
+   235  c0fc c003               -   cpy #3
+   236  c0fe f00e                   beq +
+   237  c100 a920                   lda #$20
+   238  c102 20d2ff                 jsr charout
+   239  c105 20d2ff                 jsr charout
+   240  c108 20d2ff                 jsr charout
+   241  c10b c8                     iny
+   242  c10c d0ee                   bne -
+   243  c10e a523               +   lda inidx
+   244  c110 20bbc0                 jsr dispinst
+   245  c113 a920                   lda #$20
+   246  c115 20d2ff                 jsr charout
+   247  c118 2020c1                 jsr disp_mode
+   248  c11b a90d                   lda #13
+   249  c11d 4cd2ff                 jmp charout
+   250                          
+   251                          disp_mode
+   252  c120 a524                   lda mode
+   253  c122 c90d                   cmp #13
+   254  c124 b00a                   bcs +
+   255  c126 0a                     asl
+   256  c127 aa                     tax
+   257  c128 bda9c4                 lda mode_jmptable+1,x
+   258  c12b 48                     pha
+   259  c12c bda8c4                 lda mode_jmptable,x
+   260  c12f 48                     pha
+   261  c130 60                 +   rts
+   262                          
+   263                          dispModeAcc:
+   264  c131 a941                   lda #'A'
+   265  c133 4cd2ff                 jmp charout
+   266                          
+   267                          dispModeNone:
+   268  c136 60                     rts
+   269                          
+   270                          dispModeImm:
+   271  c137 a923                   lda #'#'
+   272  c139 20d2ff                 jsr charout
+   273                          dispModeZP:
+   274  c13c a924                   lda #'$'
+   275  c13e 20d2ff                 jsr charout
+   276  c141 a001                   ldy #1
+   277  c143 b1fb                   lda (ptr1),y
+   278  c145 4c1dc2                 jmp disphexbyte
+   279                          
+   280                          dispModeIndX:
+   281  c148 a928                   lda #'('
+   282  c14a 20d2ff                 jsr charout
+   283  c14d a924                   lda #'$'
+   284  c14f 20d2ff                 jsr charout
+   285  c152 a001                   ldy #1
+   286  c154 b1fb                   lda (ptr1),y
+   287  c156 201dc2                 jsr disphexbyte
+   288  c159 a92c                   lda #','
+   289  c15b 20d2ff                 jsr charout
+   290  c15e a958                   lda #'X'
+   291  c160 20d2ff                 jsr charout
+   292  c163 a929                   lda #')'
+   293  c165 4cd2ff                 jmp charout
+   294                          
+   295                          dispModeIndY:
+   296  c168 a928                   lda #'('
+   297  c16a 20d2ff                 jsr charout
+   298  c16d a924                   lda #'$'
+   299  c16f 20d2ff                 jsr charout
+   300  c172 a001                   ldy #1
+   301  c174 b1fb                   lda (ptr1),y
+   302  c176 201dc2                 jsr disphexbyte
+   303  c179 a929                   lda #')'
+   304  c17b 20d2ff                 jsr charout
+   305  c17e a92c                   lda #','
+   306  c180 20d2ff                 jsr charout
+   307  c183 a959                   lda #'Y'
+   308  c185 4cd2ff                 jmp charout
+   309                          
+   310                          dispModeRel:
+   311  c188 a924                   lda #'$'
+   312  c18a 20d2ff                 jsr charout
+   313  c18d 18                     clc
+   314  c18e a5fb                   lda ptr1
+   315  c190 6902                   adc #2
+   316  c192 8526                   sta ptr3
+   317  c194 a5fc                   lda ptr1+1
+   318  c196 6900                   adc #0
+   319  c198 8527                   sta ptr3+1
+   320  c19a a001                   ldy #1
+   321  c19c b1fb                   lda (ptr1),y
+   322  c19e 1014                   bpl +
+   323                              ; I'm not sure how to successfully navigate page boundries adding signed byte to unsigned byte, so I'm subtracting unsigned bytes instead
+   324  c1a0 49ff                   eor #$FF ; inverse
+   325  c1a2 18                     clc
+   326  c1a3 6901                   adc #1 ; complete getting absolute value from two's complement
+   327  c1a5 85ff                   sta tmp
+   328  c1a7 38                     sec
+   329  c1a8 a526                   lda ptr3
+   330  c1aa e5ff                   sbc tmp
+   331  c1ac 8526                   sta ptr3
+   332  c1ae b00d                   bcs ++
+   333  c1b0 c627                   dec ptr3+1
+   334  c1b2 9009                   bcc ++
+   335  c1b4 18                 +   clc ; simple case of adding
+   336  c1b5 6526                   adc ptr3
+   337  c1b7 8526                   sta ptr3
+   338  c1b9 9002                   bcc ++
+   339  c1bb e627                   inc ptr3+1
+   340  c1bd a526               ++  lda ptr3
+   341  c1bf a627                   ldx ptr3+1
+   342  c1c1 4c17c2                 jmp disphexword
+   343                          
+   344                          dispModeZPX:
+   345  c1c4 203cc1                 jsr dispModeZP
+   346  c1c7 a92c                   lda #','
+   347  c1c9 20d2ff                 jsr charout
+   348  c1cc a958                   lda #'X'
+   349  c1ce 4cd2ff                 jmp charout
+   350                          
+   351                          dispModeZPY:
+   352  c1d1 203cc1                 jsr dispModeZP
+   353  c1d4 a92c                   lda #','
+   354  c1d6 20d2ff                 jsr charout
+   355  c1d9 a959                   lda #'Y'
+   356  c1db 4cd2ff                 jmp charout
+   357                          
+   358                          dispModeAbs:
+   359  c1de a924                   lda #'$'
+   360  c1e0 20d2ff                 jsr charout
+   361  c1e3 a001                   ldy #1
+   362  c1e5 b1fb                   lda (ptr1),y
+   363  c1e7 48                     pha
+   364  c1e8 c8                     iny
+   365  c1e9 b1fb                   lda (ptr1),y
+   366  c1eb aa                     tax
+   367  c1ec 68                     pla
+   368  c1ed 4c17c2                 jmp disphexword
+   369                          
+   370                          dispModeAbsX:
+   371  c1f0 20dec1                 jsr dispModeAbs
+   372  c1f3 a92c                   lda #','
+   373  c1f5 20d2ff                 jsr charout
+   374  c1f8 a958                   lda #'X'
+   375  c1fa 4cd2ff                 jmp charout
+   376                          
+   377                          dispModeAbsY:
+   378  c1fd 20dec1                 jsr dispModeAbs
+   379  c200 a92c                   lda #','
+   380  c202 20d2ff                 jsr charout
+   381  c205 a959                   lda #'Y'
+   382  c207 4cd2ff                 jmp charout
+   383                          
+   384                          dispModeInd:
+   385  c20a a928                   lda #'('
+   386  c20c 20d2ff                 jsr charout
+   387  c20f 20dec1                 jsr dispModeAbs
+   388  c212 a929                   lda #')'
+   389  c214 4cd2ff                 jmp charout
+   390                          
+   391                          disphexword: ; .A low, .X high, 0000..FFFF
+   392  c217 48                     pha
+   393  c218 8a                     txa
+   394  c219 201dc2                 jsr disphexbyte
+   395  c21c 68                     pla
+   396                              ;fall through to call again
+   397                          
+   398                          disphexbyte: ; .A 00..FF
+   399  c21d 48                     pha
+   400  c21e 4a                     lsr
+   401  c21f 4a                     lsr
+   402  c220 4a                     lsr
+   403  c221 4a                     lsr
+   404  c222 2026c2                 jsr disphexnybble
+   405  c225 68                     pla
+   406                              ;fall through to call again
+   407                          
+   408                          disphexnybble: ; .A 0..F
+   409  c226 290f                   and #$0F
+   410  c228 0930                   ora #$30
+   411  c22a c93a                   cmp #$3A
+   412  c22c 9002                   bcc +
+   413  c22e 6906                   adc #$06
+   414  c230 4cd2ff             +   jmp charout
+   415                          
+   416                          display_memory:
+   417  c233 a5fb               --  lda ptr1
+   418  c235 a6fc                   ldx ptr1+1
+   419  c237 2017c2                 jsr disphexword
+   420  c23a a920                   lda #$20
+   421  c23c 20d2ff                 jsr charout
+   422  c23f 207ac0             -   jsr compareptrs
+   423  c242 b00c                   bcs +
+   424  c244 a000                   ldy #0
+   425  c246 b1fb                   lda (ptr1),y
+   426  c248 201dc2                 jsr disphexbyte
+   427  c24b a920                   lda #$20
+   428  c24d 20d2ff                 jsr charout
+   429  c250 e6fb               +   inc ptr1
+   430  c252 d002                   bne +
+   431  c254 e6fc                   inc ptr1+1
+   432  c256 a5fb               +   lda ptr1
+   433  c258 2907                   and #$07
+   434  c25a d0e3                   bne -
+   435  c25c a90d                   lda #13
+   436  c25e 20d2ff                 jsr charout
+   437  c261 207ac0                 jsr compareptrs
+   438  c264 90cd                   bcc --
+   439  c266 60                     rts
+   440                              
+   441                          inputhexword:
+   442  c267 207fc2                 jsr inputhexbyte
+   443  c26a b012                   bcs ++
+   444  c26c 85fb                   sta ptr1 ; assume one byte
+   445  c26e a900                   lda #0
+   446  c270 85fc                   sta ptr1+1 ; extend to 16 bits
+   447  c272 207fc2                 jsr inputhexbyte
+   448  c275 b006                   bcs +
+   449  c277 a6fb                   ldx ptr1 ; two bytes so shift the bytes
+   450  c279 86fc                   stx ptr1+1
+   451  c27b 85fb                   sta ptr1
+   452  c27d 18                 +   clc
+   453  c27e 60                 ++  rts
+   454                          
+   455                          inputhexbyte:
+   456  c27f 2096c2                 jsr inputhexnybble
+   457  c282 b011                   bcs +
+   458  c284 85ff                   sta tmp
+   459  c286 2096c2                 jsr inputhexnybble
+   460  c289 b00a                   bcs +
+   461  c28b 06ff                   asl tmp
+   462  c28d 06ff                   asl tmp
+   463  c28f 06ff                   asl tmp
+   464  c291 06ff                   asl tmp
+   465  c293 05ff                   ora tmp
+   466  c295 60                 +   rts
+   467                          
+   468                          inputhexnybble:
+   469  c296 b90002                 lda $0200,y
+   470  c299 297f                   and #$7F
+   471  c29b 38                     sec
+   472  c29c e930                   sbc #$30
+   473  c29e 9012                   bcc ++
+   474  c2a0 c90a                   cmp #10
+   475  c2a2 900c                   bcc +
+   476  c2a4 e907                   sbc #7
+   477  c2a6 900a                   bcc ++
+   478  c2a8 c90a                   cmp #10
+   479  c2aa 9006                   bcc ++
+   480  c2ac c910                   cmp #16
+   481  c2ae b002                   bcs ++
+   482  c2b0 c8                 +   iny
+   483  c2b1 60                     rts
+   484  c2b2 38                 ++  sec
+   485  c2b3 60                     rts
+   486                          
+   487                          strout:
+   488  c2b4 8526                   sta ptr3
+   489  c2b6 8627                   stx ptr3+1
+   490  c2b8 a000                   ldy #0
+   491  c2ba b126               -   lda (ptr3),y
+   492  c2bc f006                   beq +
+   493  c2be 20d2ff                 jsr charout
+   494  c2c1 c8                     iny
+   495  c2c2 d0f6                   bne -
+   496  c2c4 60                 +   rts
+   497                          
+   498                          inputline:
+   499  c2c5 a000                   ldy #0
+   500  c2c7 20cfff             -   jsr charin
+   501  c2ca 990002                 sta inputbuf,y
+   502  c2cd c8                     iny
+   503  c2ce c90d                   cmp #13
+   504  c2d0 d0f5                   bne -
+   505  c2d2 60                 +   rts
+   506                          
+   507                          parseline:
+   508  c2d3 c001                   cpy #1
+   509  c2d5 f027                   beq ++ ; nothing but an empty line
+   510  c2d7 88                     dey
+   511  c2d8 8425                   sty size
+   512                              ; skip whitespace
+   513                              ; check for address, put in ptr1
+   514                              ; or check for dot, then require address put in ptr2
+   515                              ; or check for ?, and optional parameter, execute help
+   516                              ; check for whitespace
+   517                              ; check for address, put in ptr3, check if is byte sequence, store at start of inputbuf instead
+   518                              ; check for string, store at start of inputbuf
+   519                              ; check for drive number
+   520                              ; check for whitespace
+   521                              ; check command ":rda?mls", execute command
+   522  c2da a000                   ldy #0
+   523  c2dc 205ac3                 jsr skipspaces
+   524  c2df c425                   cpy size
+   525  c2e1 f01b                   beq ++
+   526  c2e3 2065c3                 jsr chkdot
+   527  c2e6 d003                   bne +
+   528  c2e8 4c29c3                 jmp executedot
+   529  c2eb 2070c3             +   jsr chkhelp
+   530  c2ee d003                   bne +
+   531  c2f0 4c29c3                 jmp executehelp
+   532  c2f3 20a0c3             +   jsr chkhexaddr1
+   533  c2f6 d003                   bne e
+   534  c2f8 4cffc2                 jmp executeaddr1
+   535  c2fb 4c43c3             e:  jmp reporterr
+   536  c2fe 60                 ++  rts
+   537                          
+   538                          executeaddr1:
+   539  c2ff c425                   cpy size
+   540  c301 d003                   bne +
+   541  c303 4c29c3                 jmp executedisplay1
+   542  c306 2065c3             +   jsr chkdot
+   543  c309 d008                   bne +
+   544  c30b 20a9c3                 jsr chkhexaddr2
+   545  c30e d0eb                   bne e
+   546  c310 4c29c3                 jmp executeaddr12
+   547  c313 205ac3             +   jsr skipspaces
+   548  c316 207bc3                 jsr chkcolon
+   549  c319 d003                   bne +
+   550  c31b 4c29c3                 jmp executemodify
+   551  c31e 20cac3             +   jsr chkaddr1cmd ; rda, will not return here if cmd
+   552  c321 2086c3                 jsr chkfilename
+   553  c324 d0d5                   bne e
+   554  c326 f001                   beq executeloadfilename
+   555  c328 00                     brk ; shouldn't get here
+   556                          
+   557                          executeloadfilename:
+   558                          executedot:
+   559                          executeaddr1cmd:
+   560                          executeaddr12:
+   561                          executehelp:
+   562                          executedisplay1:
+   563                          executemodify:
+   564  c329 4c3cc3                 jmp reportnotimplemented
+   565                          
+   566                          executeassemble:
+   567                          executerun:
+   568  c32c 68                     pla ; remove low byte return address
+   569  c32d 68                     pla ; return high byte return address
+   570  c32e 20e6c3                 jsr newline
+   571  c331 4c3cc3                 jmp reportnotimplemented
+   572                          
+   573                          executedisassemble:
+   574  c334 68                     pla ; remove low byte return address
+   575  c335 68                     pla ; return high byte return address
+   576  c336 20e6c3                 jsr newline
+   577  c339 4c53c0                 jmp disassemble
+   578                          
+   579                          reportnotimplemented:
+   580  c33c a923                   lda #<notimplemented
+   581  c33e a2c7                   ldx #>notimplemented
+   582  c340 4cb4c2                 jmp strout
+   583                          
+   584                          reporterr:
+   585  c343 c000                   cpy #0
+   586  c345 f008                   beq +
+   587  c347 a920                   lda #' '
+   588  c349 20d2ff             -   jsr charout
+   589  c34c 88                     dey
+   590  c34d d0fa                   bne -
+   591  c34f a93f               +   lda #'?'
+   592  c351 20d2ff                 jsr charout
+   593  c354 a90d                   lda #13
+   594  c356 20d2ff                 jsr charout
+   595  c359 60                     rts
+   596                          
+   597                          skipspaces:
+   598  c35a b90002             -   lda inputbuf, y
+   599  c35d c920                   cmp #$20
+   600  c35f d003                   bne +
+   601  c361 c8                     iny
+   602  c362 d0f6                   bne -
+   603  c364 60                 +   rts
+   604                          
+   605                          chkdot:
+   606  c365 b90002                 lda inputbuf, y
+   607  c368 c92e                   cmp #'.'
+   608  c36a d003                   bne +
+   609  c36c c8                     iny
+   610  c36d a900                   lda #0 ; Z true (EQ)
+   611  c36f 60                 +   rts
+   612                          
+   613                          chkhelp:
+   614  c370 b90002                 lda inputbuf, y
+   615  c373 c93f                   cmp #'?'
+   616  c375 d003                   bne +
+   617  c377 c8                     iny
+   618  c378 a900                   lda #0 ; Z true (EQ)
+   619  c37a 60                 +   rts
+   620                          
+   621                          chkcolon:
+   622  c37b b90002                 lda inputbuf, y
+   623  c37e c93a                   cmp #':'
+   624  c380 d003                   bne +
+   625  c382 c8                     iny
+   626  c383 a900                   lda #0 ; Z true (EQ)
+   627  c385 60                 +   rts
+   628                          
+   629                          chkfilename:
+   630  c386 84ff                   sty tmp
+   631  c388 b90002                 lda inputbuf, y
+   632  c38b c922                   cmp #34
+   633  c38d d010                   bne ++
+   634  c38f c8                 -   iny
+   635  c390 b90002                 lda inputbuf, y
+   636  c393 c90d                   cmp #13
+   637  c395 d004                   bne +
+   638  c397 a4ff                   ldy tmp
+   639  c399 d004                   bne ++
+   640  c39b c922               +   cmp #34
+   641  c39d d0f0                   bne -
+   642  c39f 60                 ++  rts
+   643                          
+   644                          chkhexaddr1:
+   645  c3a0 2067c2                 jsr inputhexword
+   646  c3a3 a200                   ldx #0 ; Z true (EQ)
+   647  c3a5 9001                   bcc +
+   648  c3a7 e8                     inx ; Z false (NE)
+   649  c3a8 60                 +   rts
+   650                          
+   651                          chkhexaddr2:
+   652  c3a9 a5fb                   lda ptr1
+   653  c3ab 48                     pha
+   654  c3ac a5fc                   lda ptr1+1
+   655  c3ae 48                     pha
+   656  c3af 20a0c3                 jsr chkhexaddr1
+   657  c3b2 f005                   beq +
+   658  c3b4 68                     pla
+   659  c3b5 68                     pla
+   660  c3b6 a901                   lda #1 ; Z false (NE)
+   661  c3b8 60                     rts
+   662  c3b9 a5fb               +   lda ptr1
+   663  c3bb 85fd                   sta ptr2
+   664  c3bd a5fc                   lda ptr1+1
+   665  c3bf 85fe                   sta ptr2+1
+   666  c3c1 68                     pla
+   667  c3c2 85fc                   sta ptr1+1
+   668  c3c4 68                     pla
+   669  c3c5 85fb                   sta ptr1
+   670  c3c7 a900                   lda #0 ; Z true (EQ)
+   671  c3c9 60                     rts    
+   672                          
+   673                          chkaddr1cmd:
+   674  c3ca b90002                 lda inputbuf, y
+   675  c3cd c941               +   cmp #'A'
+   676  c3cf d004                   bne +
+   677  c3d1 c8                     iny
+   678  c3d2 4c2cc3                 jmp executeassemble
+   679  c3d5 c944               +   cmp #'D'
+   680  c3d7 d004                   bne +
+   681  c3d9 c8                     iny
+   682  c3da 4c34c3                 jmp executedisassemble
+   683  c3dd c952               +   cmp #'R'
+   684  c3df d004                   bne +
+   685  c3e1 c8                     iny
+   686  c3e2 4c2cc3                 jmp executerun
+   687  c3e5 60                 +   rts
+   688                          
+   689                          newline:
+   690  c3e6 a90d                   lda #13
+   691  c3e8 4cd2ff                 jmp charout
+   692                          
+   693                          pagemore:
+   694  c3eb a934                   lda #<pagemoremsg
+   695  c3ed a2c7                   ldx #>pagemoremsg
+   696  c3ef 20b4c2                 jsr strout
+   697  c3f2 20e4ff             -   jsr getkey
+   698  c3f5 f0fb                   beq -
+   699  c3f7 48                     pha
+   700  c3f8 20e6c3                 jsr newline
+   701  c3fb 68                     pla
+   702  c3fc c951                   cmp #'Q'
+   703  c3fe 60                     rts
+   704                          
+   705                          ; charout: ; for debugging, wait for scan line to pass over entire screen at least once
+   706                          ;     jsr $ffd2
+   707                          ;     pha
+   708                          ; -   lda $d011
+   709                          ;     bpl -
+   710                          ; -   lda $d011
+   711                          ;     bmi -
+   712                          ; -   lda $d011
+   713                          ;     bpl -
+   714                          ; -   lda $d011
+   715                          ;     bmi -
+   716                          ;     pla
+   717                          ;     rts
+   718                          
+   719  c3ff 00                 end: brk
+   720                          
+   721                          ; instruction textual mnuemonic first, second, third letters (read down in source)
+   722                          ninst = 56
+   723  c400 4141414242424242...inst0 !text "AAABBBBBBBBBBCCCCCCCDDDEIIIJJLLLLNOPPPPRRRRSSSSSSSTTTTTT"
+   724  c438 444e53434345494d...inst1 !text "DNSCCEIMNPRVVLLLLMPPEEEONNNMSDDDSORHHLLOOTTBEEETTTAASXXY"
+   725  c470 43444c4353515449...inst2 !text "CDLCSQTIELKCSCDIVPXYCXYRCXYPRAXYRPAAPAPLRISCCDIAXYXYXASA"
+   726                          
+   727                          ; 6502 addressing modes by index number and number of bytes per instruction shown at end of comment
+   728                          mode_jmptable:
+   729  c4a8 30c1               !word dispModeAcc-1; 0 Accumulator 1
+   730  c4aa 35c1               !word dispModeNone-1 ; 1 None 1
+   731  c4ac 36c1               !word dispModeImm-1 ; 2 Immediate 2
+   732  c4ae 47c1               !word dispModeIndX-1 ; 3 IndirectX 2
+   733  c4b0 67c1               !word dispModeIndY-1 ; 4 IndirectY 2
+   734  c4b2 87c1               !word dispModeRel-1 ; 5 Relative 2
+   735  c4b4 3bc1               !word dispModeZP-1 ; 6 ZeroPage 2
+   736  c4b6 c3c1               !word dispModeZPX-1 ; 7 ZeroPageX 2
+   737  c4b8 d0c1               !word dispModeZPY-1 ; 8 ZeroPageY 2
+   738  c4ba ddc1               !word dispModeAbs-1 ; 9 Absolute 3
+   739  c4bc efc1               !word dispModeAbsX-1 ; 10 AbsoluteX 3
+   740  c4be fcc1               !word dispModeAbsY-1 ; 11 AbsoluteY 3
+   741  c4c0 09c2               !word dispModeInd-1 ; 12 Indirect 3
+   742                          
+   743                          mode_examples:
+   744  c4c2 4100               !text "A", 0 ; 0 Accumulator
+   745  c4c4 00                 !text "", 0 ; 1 None
+   746  c4c5 2324313200         !text "#$12", 0 ; 2 Immediate
+   747  c4ca 282431322c582900   !text "($12,X)", 0 ; 3 IndirectX
+   748  c4d2 28243132292c5900   !text "($12),Y", 0 ; 4 IndirectY
+   749  c4da 243132333420282d...!text "$1234 (-128 to +127)", 0 ; 5 Relative
+   750  c4ef 24313200           !text "$12", 0 ; 6 ZeroPage
+   751  c4f3 2431322c5800       !text "$12,X", 0 ; 7 ZeroPageX
+   752  c4f9 2431322c5900       !text "$12,Y", 0 ; 8 ZeroPageY
+   753  c4ff 243132333400       !text "$1234", 0 ; 9 Absolute
+   754  c505 24313233342c5800   !text "$1234,X", 0 ; 10 AbsoluteX
+   755  c50d 24313233342c5900   !text "$1234,Y", 0 ; 11 AbsoluteY
+   756  c515 2824313233342900   !text "($1234)", 0 ; 12 Indirect
+   757                          
+   758                          ; opcode table of byte values (opcodes), instructions, and addressing modes
+   759                          nopcodes = 151
+   760  c51d 0001050608090a0d...opcodes !byte $00,$01,$05,$06,$08,$09,$0A,$0D,$0E,$10,$11,$15,$16,$18,$19,$1D,$1E,$20,$21,$24,$25,$26,$28,$29,$2A,$2C,$2D,$2E,$30,$31,$35,$36,$38,$39,$3D,$3E,$40,$41,$45,$46,$48,$49,$4A,$4C,$4D,$4E,$50,$51,$55,$56,$58,$59,$5D,$5E,$60,$61,$65,$66,$68,$69,$6A,$6C,$6D,$6E,$70,$71,$75,$76,$78,$79,$7D,$7E,$81,$84,$85,$86,$88,$8A,$8C,$8D,$8E,$90,$91,$94,$95,$96,$98,$99,$9A,$9D,$A0,$A1,$A2,$A4,$A5,$A6,$A8,$A9,$AA,$AC,$AD,$AE,$B0,$B1,$B4,$B5,$B6,$B8,$B9,$BA,$BC,$BD,$BE,$C0,$C1,$C4,$C5,$C6,$C8,$C9,$CA,$CC,$CD,$CE,$D0,$D1,$D5,$D6,$D8,$D9,$DD,$DE,$E0,$E1,$E4,$E5,$E6,$E8,$E9,$EA,$EC,$ED,$EE,$F0,$F1,$F5,$F6,$F8,$F9,$FD,$FE
+   761  c5b4 0a22220224220222...instidx !byte $0A,$22,$22,$02,$24,$22,$02,$22,$02,$09,$22,$22,$02,$0D,$22,$22,$02,$1C,$01,$06,$01,$27,$26,$01,$27,$06,$01,$27,$07,$01,$01,$27,$2C,$01,$01,$27,$29,$17,$17,$20,$23,$17,$20,$1B,$17,$20,$0B,$17,$17,$20,$0F,$17,$17,$20,$2A,$00,$00,$28,$25,$00,$28,$1B,$00,$28,$0C,$00,$00,$28,$2E,$00,$00,$28,$2F,$31,$2F,$30,$16,$35,$31,$2F,$30,$03,$2F,$31,$2F,$30,$37,$2F,$36,$2F,$1F,$1D,$1E,$1F,$1D,$1E,$33,$1D,$32,$1F,$1D,$1E,$04,$1D,$1F,$1D,$1E,$10,$1D,$34,$1F,$1D,$1E,$13,$11,$13,$11,$14,$1A,$11,$15,$13,$11,$14,$08,$11,$11,$14,$0E,$11,$11,$14,$12,$2B,$12,$2B,$18,$19,$2B,$21,$12,$2B,$18,$05,$2B,$2B,$18,$2D,$2B,$2B,$18
+   762  c64b 0103060601020009...modeidx !byte $01,$03,$06,$06,$01,$02,$00,$09,$09,$05,$04,$07,$07,$01,$0B,$0A,$0A,$09,$03,$06,$06,$06,$01,$02,$00,$09,$09,$09,$05,$04,$07,$07,$01,$0B,$0A,$0A,$01,$03,$06,$06,$01,$02,$00,$09,$09,$09,$05,$04,$07,$07,$01,$0B,$0A,$0A,$01,$03,$06,$06,$01,$02,$00,$0C,$09,$09,$05,$04,$07,$07,$01,$0B,$0A,$0A,$03,$06,$06,$06,$01,$01,$09,$09,$09,$05,$04,$07,$07,$08,$01,$0B,$01,$0A,$02,$03,$02,$06,$06,$06,$01,$02,$01,$09,$09,$09,$05,$04,$07,$07,$08,$01,$0B,$01,$0A,$0A,$0B,$02,$03,$06,$06,$06,$01,$02,$01,$09,$09,$09,$05,$04,$07,$07,$01,$0B,$0A,$0A,$02,$03,$06,$06,$06,$01,$02,$01,$09,$09,$09,$05,$04,$07,$07,$01,$0B,$0A,$0A
+   763                          
+   764  c6e2 0d91565741533230...copyright !text 13,145,"VWAS2024 (C) 2024 DAVID R. VAN WAGNER", 13, "MIT LICENSE DAVEVW.COM", 157, 13, 0
+   765  c723 4e4f5420494d504c...notimplemented !text "NOT IMPLEMENTED",13,0
+   766  c734 285b515d20544f20...pagemoremsg !text "([Q] TO QUIT, ELSE CONTINUE)...",0
+   767                          
+   768                          finish = *

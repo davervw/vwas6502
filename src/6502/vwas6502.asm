@@ -79,6 +79,8 @@ inputbuf=$0200
 
 ; kernal/system calls
 charout=$ffd2
+charin=$ffcf ; screen editor
+getkey=$ffe4
 
 ; zeropage
 ptr1=$fb ; and $fc
@@ -89,10 +91,13 @@ inidx=$23
 mode=$24
 size=$25
 ptr3=$26 ; and $27
+count=$a3
 
 *=$c000
 start:
-    jmp +
+    jsr inputline
+    jsr parseline
+    jmp start
 
 test: ; all the addressing modes here for testing disassembly
     nop
@@ -133,6 +138,8 @@ test: ; all the addressing modes here for testing disassembly
     jmp display_memory
 
 disassemble:
+--  lda #24
+    sta count
 -   ldy #0
     lda (ptr1),y
     jsr find_opcode
@@ -145,8 +152,10 @@ disassemble:
     sta ptr1
     bcc +
     inc ptr1+1
-+   jsr compareptrs
-    bcc -
++   dec count
+    bne -
+    jsr pagemore
+    bne --
     rts
 
 compareptrs:
@@ -428,22 +437,8 @@ display_memory:
     jsr compareptrs
     bcc --
     rts
-
-ignorespc:
-    ; input pointer first points to R when execution comes from wozmon
---  iny ; advance input pointer
-    beq + ; way too far
-    lda inputbuf,y
-    and #$7F
-    bne +
--   sec ; error
-    rts
-+   cmp #$20
-    beq --
-    clc ; okay
-    rts
     
-    inputhexword:
+inputhexword:
     jsr inputhexbyte
     bcs ++
     sta ptr1 ; assume one byte
@@ -499,6 +494,213 @@ strout:
     iny
     bne -
 +   rts
+
+inputline:
+    ldy #0
+-   jsr charin
+    sta inputbuf,y
+    iny
+    cmp #13
+    bne -
++   rts
+
+parseline:
+    cpy #1
+    beq ++ ; nothing but an empty line
+    dey
+    sty size
+    ; skip whitespace
+    ; check for address, put in ptr1
+    ; or check for dot, then require address put in ptr2
+    ; or check for ?, and optional parameter, execute help
+    ; check for whitespace
+    ; check for address, put in ptr3, check if is byte sequence, store at start of inputbuf instead
+    ; check for string, store at start of inputbuf
+    ; check for drive number
+    ; check for whitespace
+    ; check command ":rda?mls", execute command
+    ldy #0
+    jsr skipspaces
+    cpy size
+    beq ++
+    jsr chkdot
+    bne +
+    jmp executedot
++   jsr chkhelp
+    bne +
+    jmp executehelp
++   jsr chkhexaddr1
+    bne e
+    jmp executeaddr1
+e:  jmp reporterr
+++  rts
+
+executeaddr1:
+    cpy size
+    bne +
+    jmp executedisplay1
++   jsr chkdot
+    bne +
+    jsr chkhexaddr2
+    bne e
+    jmp executeaddr12
++   jsr skipspaces
+    jsr chkcolon
+    bne +
+    jmp executemodify
++   jsr chkaddr1cmd ; rda, will not return here if cmd
+    jsr chkfilename
+    bne e
+    beq executeloadfilename
+    brk ; shouldn't get here
+
+executeloadfilename:
+executedot:
+executeaddr1cmd:
+executeaddr12:
+executehelp:
+executedisplay1:
+executemodify:
+    jmp reportnotimplemented
+
+executeassemble:
+executerun:
+    pla ; remove low byte return address
+    pla ; return high byte return address
+    jsr newline
+    jmp reportnotimplemented
+
+executedisassemble:
+    pla ; remove low byte return address
+    pla ; return high byte return address
+    jsr newline
+    jmp disassemble
+
+reportnotimplemented:
+    lda #<notimplemented
+    ldx #>notimplemented
+    jmp strout
+
+reporterr:
+    cpy #0
+    beq +
+    lda #' '
+-   jsr charout
+    dey
+    bne -
++   lda #'?'
+    jsr charout
+    lda #13
+    jsr charout
+    rts
+
+skipspaces:
+-   lda inputbuf, y
+    cmp #$20
+    bne +
+    iny
+    bne -
++   rts
+
+chkdot:
+    lda inputbuf, y
+    cmp #'.'
+    bne +
+    iny
+    lda #0 ; Z true (EQ)
++   rts
+
+chkhelp:
+    lda inputbuf, y
+    cmp #'?'
+    bne +
+    iny
+    lda #0 ; Z true (EQ)
++   rts
+
+chkcolon:
+    lda inputbuf, y
+    cmp #':'
+    bne +
+    iny
+    lda #0 ; Z true (EQ)
++   rts
+
+chkfilename:
+    sty tmp
+    lda inputbuf, y
+    cmp #34
+    bne ++
+-   iny
+    lda inputbuf, y
+    cmp #13
+    bne +
+    ldy tmp
+    bne ++
++   cmp #34
+    bne -
+++  rts
+
+chkhexaddr1:
+    jsr inputhexword
+    ldx #0 ; Z true (EQ)
+    bcc +
+    inx ; Z false (NE)
++   rts
+
+chkhexaddr2:
+    lda ptr1
+    pha
+    lda ptr1+1
+    pha
+    jsr chkhexaddr1
+    beq +
+    pla
+    pla
+    lda #1 ; Z false (NE)
+    rts
++   lda ptr1
+    sta ptr2
+    lda ptr1+1
+    sta ptr2+1
+    pla
+    sta ptr1+1
+    pla
+    sta ptr1
+    lda #0 ; Z true (EQ)
+    rts    
+
+chkaddr1cmd:
+    lda inputbuf, y
++   cmp #'A'
+    bne +
+    iny
+    jmp executeassemble
++   cmp #'D'
+    bne +
+    iny
+    jmp executedisassemble
++   cmp #'R'
+    bne +
+    iny
+    jmp executerun
++   rts
+
+newline:
+    lda #13
+    jmp charout
+
+pagemore:
+    lda #<pagemoremsg
+    ldx #>pagemoremsg
+    jsr strout
+-   jsr getkey
+    beq -
+    pha
+    jsr newline
+    pla
+    cmp #'Q'
+    rts
 
 ; charout: ; for debugging, wait for scan line to pass over entire screen at least once
 ;     jsr $ffd2
@@ -560,5 +762,7 @@ instidx !byte $0A,$22,$22,$02,$24,$22,$02,$22,$02,$09,$22,$22,$02,$0D,$22,$22,$0
 modeidx !byte $01,$03,$06,$06,$01,$02,$00,$09,$09,$05,$04,$07,$07,$01,$0B,$0A,$0A,$09,$03,$06,$06,$06,$01,$02,$00,$09,$09,$09,$05,$04,$07,$07,$01,$0B,$0A,$0A,$01,$03,$06,$06,$01,$02,$00,$09,$09,$09,$05,$04,$07,$07,$01,$0B,$0A,$0A,$01,$03,$06,$06,$01,$02,$00,$0C,$09,$09,$05,$04,$07,$07,$01,$0B,$0A,$0A,$03,$06,$06,$06,$01,$01,$09,$09,$09,$05,$04,$07,$07,$08,$01,$0B,$01,$0A,$02,$03,$02,$06,$06,$06,$01,$02,$01,$09,$09,$09,$05,$04,$07,$07,$08,$01,$0B,$01,$0A,$0A,$0B,$02,$03,$06,$06,$06,$01,$02,$01,$09,$09,$09,$05,$04,$07,$07,$01,$0B,$0A,$0A,$02,$03,$06,$06,$06,$01,$02,$01,$09,$09,$09,$05,$04,$07,$07,$01,$0B,$0A,$0A
 
 copyright !text 13,145,"VWAS2024 (C) 2024 DAVID R. VAN WAGNER", 13, "MIT LICENSE DAVEVW.COM", 157, 13, 0
+notimplemented !text "NOT IMPLEMENTED",13,0
+pagemoremsg !text "([Q] TO QUIT, ELSE CONTINUE)...",0
 
 finish = *
