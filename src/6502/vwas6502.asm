@@ -92,6 +92,9 @@ mode=$24
 size=$25
 ptr3=$26 ; and $27
 count=$a3
+len=$a4
+savelen=$a5
+tmp2=$a6
 
 *=$c000
 start:
@@ -441,19 +444,24 @@ display_memory:
     bcc --
     rts
     
-inputhexword:
+inputhexword: ; C set if fails
+    tya
+    tax ; save buffer pointer in x
     jsr inputhexbyte
-    bcs ++
-    sta ptr1 ; assume one byte
+    bcs ++ ; failed
++   sta ptr1 ; assume one byte
     lda #0
     sta ptr1+1 ; extend to 16 bits
     jsr inputhexbyte
-    bcs +
+    bcs + ; failed
     ldx ptr1 ; two bytes so shift the bytes
     stx ptr1+1
     sta ptr1
 +   clc
-++  rts
+    rts
+++  txa
+    tay ; restore buffer pointer
+    rts
 
 inputhexbyte:
     jsr inputhexnybble
@@ -509,9 +517,10 @@ inputline:
 
 parseline:
     cpy #1
-    beq ++ ; nothing but an empty line
-    dey
-    sty size
+    bne +
+-   jmp newline
++   dey
+    sty len
     ; skip whitespace
     ; check for address, put in ptr1
     ; or check for dot, then require address put in ptr2
@@ -524,8 +533,8 @@ parseline:
     ; check command ":rda?mls", execute command
     ldy #0
     jsr skipspaces
-    cpy size
-    beq ++
+    cpy len
+    beq -
     jsr chkdot
     bne +
     jmp executedot
@@ -536,10 +545,9 @@ parseline:
     bne e
     jmp executeaddr1
 e:  jmp reporterr
-++  rts
 
 executeaddr1:
-    cpy size
+    cpy len
     bne +
     jmp executedisplay1
 +   jsr chkdot
@@ -558,7 +566,7 @@ executeaddr1:
     brk ; will never get here
 
 executeaddr12:
-    cpy size
+    cpy len
     bne +
     jmp executedisplay12
 +   jmp reportnotimplemented
@@ -603,9 +611,9 @@ executedisplay12:
 
 executemodify:
     jsr skipspaces
-    cpy size
+    cpy len
     beq ++
-    jsr chkhexbyte
+    jsr chkhexbyteofsequence
     beq +
     jmp e
 +   sty tmp
@@ -627,8 +635,369 @@ executehelp:
 executeassemble:
     pla ; remove low byte return address
     pla ; return high byte return address
-    jsr newline
-    jmp reportnotimplemented
+    lda #20
+    jsr charout
+    jsr charout
+    ; lda ptr1
+    ; ldx ptr1+1
+    ; jsr disphexword
+    ; lda #' '
+    ; jsr charout
+    jsr inputline
+    cpy #1
+    beq ++
+    dey
+    sty len
+    ldy #0
+    jsr skipspaces
+    cpy len
+    beq ++
+    ;jsr chkhexaddr1 *** NO interferes with ADC, BCC, DEC
+    ;jsr skipspaces
+    jsr chkinstruction
+    beq +
+-   jmp e
++   jsr disphexbyte
+    jsr chkaddressing
+    bne -
+    jsr disphexbyte
+    ldx #0 ; Z true (EQ)
+++  jmp newline
+
+chkaddressing: ; match input to addressing mode, note caller may need to adjust
+    jsr skipspaces
+    ldx #0
+    stx mode
+    jsr chkaccumulator
+    beq +
+    inc mode
+    cpy len ; chknone
+    beq +
+    inc mode
+    jsr chkimmediate
+    beq +
+    inc mode
+    jsr chkindirectx
+    beq +
+    inc mode
+    jsr chkindirecty
+    beq +
+    inc mode
+    jsr chkrelative
+    beq +
+    inc mode
+    jsr chkzeropage
+    beq +
+    inc mode
+    jsr chkzeropagex
+    beq +
+    inc mode
+    jsr chkzeropagey
+    beq +
+    inc mode
+    jsr chkabsolute
+    beq +
+    inc mode
+    jsr chkabsolutex
+    beq +
+    inc mode
+    jsr chkabsolutey
+    beq +
+    inc mode
+    jsr chkindirect
++   php ; save Z
+    lda mode
+    plp ; restore Z 
+    rts
+
+chkaccumulator:
+    ; TODO: ASL, LSR, ROL, ROR allowed not have no parameters
+    lda inputbuf, y
+    cmp #'A'
+    bne +
+    lda inputbuf+1,y
+    cmp #13
++   rts
+
+chkimmediate:
+    sty savelen
+    lda inputbuf, y
+    cmp #'#'
+    bne ++
+    iny
+    lda inputbuf, y
+    cmp #'$'
+    bne +
+    iny
++   jsr chkhexbyte
+    bne ++
++   cpy len
+    bne ++
+    rts
+++  ldy savelen
+    ldx #1 ; Z false (NE)
+    rts
+
+chkindirectx:
+    sty savelen
+    lda inputbuf, y
+    cmp #'('
+    bne ++
+    iny
+    lda inputbuf, y
+    cmp #'$'
+    bne +
+    iny
++   jsr chkhexbyte
+    bne ++
+    lda inputbuf, y
+    cmp #','
+    bne ++
+    iny
+    jsr skipspaces
+    lda inputbuf, y
+    cmp #'X'
+    bne ++
+    iny
+    lda inputbuf, y
+    cmp #')'
+    bne ++
+    iny
+    cpy len
+    bne ++
+    rts
+++  ldy savelen
+    ldx #1 ; Z false (NE)
+    rts
+
+chkindirecty:
+    sty savelen
+    lda inputbuf, y
+    cmp #'('
+    bne ++
+    iny
+    lda inputbuf, y
+    cmp #'$'
+    bne +
+    iny
++   jsr chkhexbyte
+    bne ++
+    lda inputbuf, y
+    cmp #')'
+    bne ++
+    iny
+    jsr skipspaces
+    lda inputbuf, y
+    cmp #','
+    bne ++
+    iny
+    lda inputbuf, y
+    cmp #'Y'
+    bne ++
+    iny
+    cpy len
+    bne ++
+    rts
+++  ldy savelen
+    ldx #1 ; Z false (NE)
+    rts
+
+chkrelative:
+    sty savelen
+    ldx instidx
+    cpx #6 ; BIT
+    beq ++
+    lda inst0, x
+    cmp #'B'
+    bne ++
+    lda inputbuf, y
+    cmp #'$'
+    bne +
+    iny
++   jsr chkhexword ; TODO compute offset, validate +128 -128
+    bne ++
+    cpy len
+    bne ++
+    rts ; Z true (EQ)
+++  ldy savelen
+    ldx #1 ; Z false (NE)
+    rts
+
+chkzeropage:
+    sty savelen
+    lda inputbuf, y
+    cmp #'$'
+    bne +
+    iny
++   jsr chkhexbyte
+    bne ++
+    cpy len
+    bne ++
+    rts ; Z true (EQ)
+++  ldy savelen
+    ldx #1 ; Z false (NE)
+    rts
+
+chkzeropagex:
+    sty savelen
+    lda inputbuf, y
+    cmp #'$'
+    bne +
+    iny
++   jsr chkhexbyte
+    bne ++
+    lda inputbuf, y
+    cmp #','
+    bne ++
+    iny
+    jsr skipspaces
+    lda inputbuf, y
+    cmp #'X'
+    bne ++
+    iny
+    cpy len
+    bne ++
+    rts ; Z true (EQ)
+++  ldy savelen
+    ldx #1 ; Z false (NE)
+    rts
+
+chkzeropagey:
+    sty savelen
+    lda inputbuf, y
+    cmp #'$'
+    bne +
+    iny
++   jsr chkhexbyte
+    bne ++
+    lda inputbuf, y
+    cmp #','
+    bne ++
+    iny
+    jsr skipspaces
+    lda inputbuf, y
+    cmp #'Y'
+    bne ++
+    iny
+    cpy len
+    bne ++
+    rts ; Z true (EQ)
+++  ldy savelen
+    ldx #1 ; Z false (NE)
+    rts
+
+chkabsolute:
+    sty savelen
+    lda inputbuf, y
+    cmp #'$'
+    bne +
+    iny
++   jsr chkhexword
+    bne ++
+    cpy len
+    bne ++
+    rts ; Z true (EQ)
+++  ldy savelen
+    ldx #1 ; Z false (NE)
+    rts
+
+chkabsolutex:
+    sty savelen
+    lda inputbuf, y
+    cmp #'$'
+    bne +
+    iny
++   jsr chkhexword
+    bne ++
+    lda inputbuf, y
+    cmp #','
+    bne ++
+    iny
+    jsr skipspaces
+    lda inputbuf, y
+    cmp #'X'
+    bne ++
+    iny
+    cpy len
+    bne ++
+    rts ; Z true (EQ)
+++  ldy savelen
+    ldx #1 ; Z false (NE)
+    rts
+
+chkabsolutey:
+    sty savelen
+    lda inputbuf, y
+    cmp #'$'
+    bne +
+    iny
++   jsr chkhexword
+    bne ++
+    lda inputbuf, y
+    cmp #','
+    bne ++
+    iny
+    jsr skipspaces
+    lda inputbuf, y
+    cmp #'Y'
+    bne ++
+    iny
+    cpy len
+    bne ++
+    rts ; Z true (EQ)
+++  ldy savelen
+    ldx #1 ; Z false (NE)
+    rts
+
+chkindirect:
+    sty savelen
+    lda inputbuf, y
+    cmp #'('
+    bne ++
+    iny
+    lda inputbuf, y
+    cmp #'$'
+    bne +
+    iny
++   jsr chkhexword
+    bne ++
+    lda inputbuf, y
+    cmp #')'
+    bne ++
+    iny
+    cpy len
+    bne ++
+    rts ; Z true (EQ)
+++  ldy savelen
+    ldx #1 ; Z false (NE)
+    rts
+
+chkinstruction:
+    cpy len
+    beq ++
+    sty tmp
+    ldx #(ninst-1)
+-   lda inputbuf,y
+    cmp inst0,x
+    bne +
+    iny
+    lda inputbuf,y
+    cmp inst1,x
+    bne +
+    iny
+    lda inputbuf,y
+    cmp inst2,x
+    bne +
+    iny
+    txa
+    sta instidx
+    ldx #0
+    rts
++   ldy tmp
+    dex
+    bpl -
+++  ldx #1 ; Z false (NE)
+    rts
 
 executerun:
     pla ; remove low byte return address
@@ -719,11 +1088,11 @@ chkfilename:
     bne -
 ++  rts
 
-chkhexbyte:
+chkhexbyteofsequence:
     jsr inputhexbyte
     jsr +
     bne ++ ; Z false (NE) if failed checks
-    cpy size
+    cpy len
     beq ++ ; Z true (EQ) if end of input
     sta tmp
     lda inputbuf,y
@@ -733,12 +1102,32 @@ chkhexbyte:
     ldx #0 ; Z true (EQ) is space delimeter
 ++  rts
 
+chkhexword:
+    jsr inputhexword
+    jmp +
+
 chkhexaddr1:
     jsr inputhexword
 +   ldx #0 ; Z true (EQ)
     bcc +
     inx ; Z false (NE)
 +   rts
+
+chkhexbyte
+    tya
+    pha ; save y
+    jsr inputhexbyte
+    bcs +
+    sta tmp2
+    jsr inputhexnybble
+    bcc +
+    pla ; throw away saved y
+    lda tmp2
+    ldx #0 ; Z true (EQ)
+    rts
++   pla
+    tay ; won't be zero, so Z false (NE)
+    rts    
 
 chkhexaddr2:
     lda ptr1
