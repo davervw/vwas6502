@@ -465,16 +465,19 @@ inputhexword: ; C set if fails
 
 inputhexbyte:
     jsr inputhexnybble
-    bcs +
+    bcs ++
     sta tmp
     jsr inputhexnybble
-    bcs +
-    asl tmp
+    bcc +
+    clc ; allow single digit as byte
+    lda tmp
+    bcc ++
++   asl tmp
     asl tmp
     asl tmp
     asl tmp
     ora tmp
-+   rts
+++  rts
 
 inputhexnybble:
     lda $0200,y
@@ -725,6 +728,7 @@ chkimmediate:
     cmp #'#'
     bne ++
     iny
+    jsr skipspaces
     lda inputbuf, y
     cmp #'$'
     bne +
@@ -744,12 +748,14 @@ chkindirectx:
     cmp #'('
     bne ++
     iny
+    jsr skipspaces
     lda inputbuf, y
     cmp #'$'
     bne +
     iny
 +   jsr chkhexbyte
     bne ++
+    jsr skipspaces
     lda inputbuf, y
     cmp #','
     bne ++
@@ -759,6 +765,7 @@ chkindirectx:
     cmp #'X'
     bne ++
     iny
+    jsr skipspaces
     lda inputbuf, y
     cmp #')'
     bne ++
@@ -776,12 +783,14 @@ chkindirecty:
     cmp #'('
     bne ++
     iny
+    jsr skipspaces
     lda inputbuf, y
     cmp #'$'
     bne +
     iny
 +   jsr chkhexbyte
     bne ++
+    jsr skipspaces
     lda inputbuf, y
     cmp #')'
     bne ++
@@ -791,6 +800,7 @@ chkindirecty:
     cmp #','
     bne ++
     iny
+    jsr skipspaces
     lda inputbuf, y
     cmp #'Y'
     bne ++
@@ -846,6 +856,7 @@ chkzeropagex:
     iny
 +   jsr chkhexbyte
     bne ++
+    jsr skipspaces
     lda inputbuf, y
     cmp #','
     bne ++
@@ -870,6 +881,7 @@ chkzeropagey:
     iny
 +   jsr chkhexbyte
     bne ++
+    jsr skipspaces
     lda inputbuf, y
     cmp #','
     bne ++
@@ -909,6 +921,7 @@ chkabsolutex:
     iny
 +   jsr chkhexword
     bne ++
+    jsr skipspaces
     lda inputbuf, y
     cmp #','
     bne ++
@@ -933,6 +946,7 @@ chkabsolutey:
     iny
 +   jsr chkhexword
     bne ++
+    jsr skipspaces
     lda inputbuf, y
     cmp #','
     bne ++
@@ -955,12 +969,14 @@ chkindirect:
     cmp #'('
     bne ++
     iny
+    jsr skipspaces
     lda inputbuf, y
     cmp #'$'
     bne +
     iny
 +   jsr chkhexword
     bne ++
+    jsr skipspaces
     lda inputbuf, y
     cmp #')'
     bne ++
