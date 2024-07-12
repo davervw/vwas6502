@@ -552,9 +552,10 @@ parseline:
     bne +
     jmp executehelp
 +   jsr chkhexaddr1
-    bne e
+    bne error
     jmp executeaddr1
-e:  jmp reporterr
+error:
+    jmp reporterr
 
 executeaddr1:
     cpy len
@@ -563,7 +564,7 @@ executeaddr1:
 +   jsr chkdot
     bne +
     jsr chkhexaddr2
-    bne e
+    bne error
     jmp executeaddr12
 +   jsr skipspaces
     jsr chkcolon
@@ -571,7 +572,7 @@ executeaddr1:
     jmp executemodify
 +   jsr chkaddr1cmd ; rda, will not return here if cmd
     jsr chkfilename
-    bne e
+    bne error
     beq executeloadfilename
     brk ; will never get here
 
@@ -625,7 +626,7 @@ executemodify:
     beq ++
     jsr chkhexbyteofsequence
     beq +
-    jmp e
+    jmp error
 +   sty tmp
     ldy #0
     sta (ptr1),y
@@ -648,11 +649,11 @@ executeassemble:
     lda #20
     jsr charout
     jsr charout
-    ; lda ptr1
-    ; ldx ptr1+1
-    ; jsr disphexword
-    ; lda #' '
-    ; jsr charout
+    ; save current pointer
+--  lda ptr1
+    ldx ptr1+1
+    sta ptr3
+    stx ptr3+1
     jsr inputline
     cpy #1
     beq ++
@@ -662,42 +663,54 @@ executeassemble:
     jsr skipspaces
     cpy len
     beq ++
-    ;jsr chkhexaddr1 *** NO interferes with ADC, BCC, DEC
+    ;jsr chkhexaddr1 *** WARNING: interferes with ADC, BCC, DEC because those names are exclusively valid HEX alphabetic characters
     ;jsr skipspaces
     jsr chkinstruction
     beq +
--   jmp e    
-+   jsr disphexbyte
-    lda #' '
-    jsr charout
-    jsr chkaddressing
+-   jmp error    
++   jsr chkaddressing
     bne -
-    jsr disphexbyte
-    lda #' '
-    jsr charout
     jsr find_inst_and_mode
     bne -
-    ldx opidx
-    lda opcodes, x
-    jsr disphexbyte
-    lda #' '
-    jsr charout
+    jsr store_assembly
+    clc
     lda size
-    jsr disphexbyte
-    lda #' '
-    jsr charout
-    lda size
-    cmp #2
-    bne +
-    lda tmp2
-    jsr disphexbyte
-    jmp ++
-+   cmp #3
-    bne ++
+    adc ptr3
+    sta ptr1
+    lda ptr3+1
+    adc #0
+    sta ptr1+1
+    jsr newline ; TODO disassemble on screen as assemble for validation
     lda ptr1
     ldx ptr1+1
     jsr disphexword
+    lda #' '
+    jsr charout
+    jmp --
 ++  jmp newline
+
+store_assembly:
+    ldx opidx
+    lda opcodes, x
+    ldy #0
+    sta (ptr3), y
+    iny
+    ldx size
+    cpx #1
+    beq ++
++   cpx #2
+    bne +
+    lda tmp2
+    sta (ptr3), y
+    rts
++   cpx #3
+    bne ++
+    lda ptr1
+    sta (ptr3), y
+    iny
+    lda ptr1+1
+    sta (ptr3), y
+++  rts
 
 chkaddressing: ; match input to addressing mode, note caller may need to adjust
     jsr skipspaces
@@ -866,13 +879,49 @@ chkrelative:
     cmp #'$'
     bne +
     iny
-+   jsr chkhexword ; TODO compute offset, validate +128 -128
++   jsr chkhexword
     bne ++
     cpy len
+    bne ++
+    jsr computeoffset
     bne ++
     rts ; Z true (EQ)
 ++  ldy savepos
     ldx #1 ; Z false (NE)
+    rts
+
+computeoffset:
+;   compute next address
+    lda ptr3+1
+    sta ptr2+1
+    lda ptr3
+    clc
+    adc #2
+    sta ptr2
+    bcc +
+    inc ptr2+1
++  ; subtract argument
+    sec
+    lda ptr1
+    sbc ptr2
+    sta tmp2
+    lda ptr1+1
+    sbc ptr2+1
+    beq chkoffsetto127 ; offset is byte sized, make sure is positive signed byte
+    cmp #$FF
+    bne failedoffset ; 0 and FF were only options so fail
+    ; chkeck negative offset
+    lda tmp2
+    bmi successoffset ; branch if signed byte is negative
+    bpl failedoffset ; otherwise fail
+chkoffsetto127:
+    lda tmp2
+    bmi failedoffset ; branch if too large an offset 128 bytes or more
+successoffset:    
+    lda #0 ; Z true (EQ)
+    rts
+failedoffset:
+    lda #1 ; Z false (NE)
     rts
 
 chkzeropage:
