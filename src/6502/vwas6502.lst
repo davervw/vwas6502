@@ -95,7 +95,7 @@
     93                          ptr3=$26 ; and $27
     94                          count=$a3
     95                          len=$a4
-    96                          savelen=$a5
+    96                          savepos=$a5
     97                          tmp2=$a6
     98                          
     99                          *=$c000
@@ -725,7 +725,7 @@
    723  c458 60                 +   rts
    724                          
    725                          chkimmediate:
-   726  c459 84a5                   sty savelen
+   726  c459 84a5                   sty savepos
    727  c45b b90002                 lda inputbuf, y
    728  c45e c923                   cmp #'#'
    729  c460 d016                   bne ++
@@ -740,12 +740,12 @@
    738  c473 c4a4               +   cpy len
    739  c475 d001                   bne ++
    740  c477 60                     rts
-   741  c478 a4a5               ++  ldy savelen
+   741  c478 a4a5               ++  ldy savepos
    742  c47a a201                   ldx #1 ; Z false (NE)
    743  c47c 60                     rts
    744                          
    745                          chkindirectx:
-   746  c47d 84a5                   sty savelen
+   746  c47d 84a5                   sty savepos
    747  c47f b90002                 lda inputbuf, y
    748  c482 c928                   cmp #'('
    749  c484 d037                   bne ++
@@ -775,12 +775,12 @@
    773  c4b8 c4a4                   cpy len
    774  c4ba d001                   bne ++
    775  c4bc 60                     rts
-   776  c4bd a4a5               ++  ldy savelen
+   776  c4bd a4a5               ++  ldy savepos
    777  c4bf a201                   ldx #1 ; Z false (NE)
    778  c4c1 60                     rts
    779                          
    780                          chkindirecty:
-   781  c4c2 84a5                   sty savelen
+   781  c4c2 84a5                   sty savepos
    782  c4c4 b90002                 lda inputbuf, y
    783  c4c7 c928                   cmp #'('
    784  c4c9 d037                   bne ++
@@ -810,12 +810,12 @@
    808  c4fd c4a4                   cpy len
    809  c4ff d001                   bne ++
    810  c501 60                     rts
-   811  c502 a4a5               ++  ldy savelen
+   811  c502 a4a5               ++  ldy savepos
    812  c504 a201                   ldx #1 ; Z false (NE)
    813  c506 60                     rts
    814                          
    815                          chkrelative:
-   816  c507 84a5                   sty savelen
+   816  c507 84a5                   sty savepos
    817  c509 ae4dc9                 ldx instidx
    818  c50c e006                   cpx #6 ; BIT
    819  c50e f019                   beq ++
@@ -831,12 +831,12 @@
    829  c524 c4a4                   cpy len
    830  c526 d001                   bne ++
    831  c528 60                     rts ; Z true (EQ)
-   832  c529 a4a5               ++  ldy savelen
+   832  c529 a4a5               ++  ldy savepos
    833  c52b a201                   ldx #1 ; Z false (NE)
    834  c52d 60                     rts
    835                          
    836                          chkzeropage:
-   837  c52e 84a5                   sty savelen
+   837  c52e 84a5                   sty savepos
    838  c530 b90002                 lda inputbuf, y
    839  c533 c924                   cmp #'$'
    840  c535 d001                   bne +
@@ -846,12 +846,12 @@
    844  c53d c4a4                   cpy len
    845  c53f d001                   bne ++
    846  c541 60                     rts ; Z true (EQ)
-   847  c542 a4a5               ++  ldy savelen
+   847  c542 a4a5               ++  ldy savepos
    848  c544 a201                   ldx #1 ; Z false (NE)
    849  c546 60                     rts
    850                          
    851                          chkzeropagex:
-   852  c547 84a5                   sty savelen
+   852  c547 84a5                   sty savepos
    853  c549 b90002                 lda inputbuf, y
    854  c54c c924                   cmp #'$'
    855  c54e d001                   bne +
@@ -871,12 +871,12 @@
    869  c56c c4a4                   cpy len
    870  c56e d001                   bne ++
    871  c570 60                     rts ; Z true (EQ)
-   872  c571 a4a5               ++  ldy savelen
+   872  c571 a4a5               ++  ldy savepos
    873  c573 a201                   ldx #1 ; Z false (NE)
    874  c575 60                     rts
    875                          
    876                          chkzeropagey:
-   877  c576 84a5                   sty savelen
+   877  c576 84a5                   sty savepos
    878  c578 b90002                 lda inputbuf, y
    879  c57b c924                   cmp #'$'
    880  c57d d001                   bne +
@@ -896,12 +896,12 @@
    894  c59b c4a4                   cpy len
    895  c59d d001                   bne ++
    896  c59f 60                     rts ; Z true (EQ)
-   897  c5a0 a4a5               ++  ldy savelen
+   897  c5a0 a4a5               ++  ldy savepos
    898  c5a2 a201                   ldx #1 ; Z false (NE)
    899  c5a4 60                     rts
    900                          
    901                          chkabsolute:
-   902  c5a5 84a5                   sty savelen
+   902  c5a5 84a5                   sty savepos
    903  c5a7 b90002                 lda inputbuf, y
    904  c5aa c924                   cmp #'$'
    905  c5ac d001                   bne +
@@ -911,12 +911,12 @@
    909  c5b4 c4a4                   cpy len
    910  c5b6 d001                   bne ++
    911  c5b8 60                     rts ; Z true (EQ)
-   912  c5b9 a4a5               ++  ldy savelen
+   912  c5b9 a4a5               ++  ldy savepos
    913  c5bb a201                   ldx #1 ; Z false (NE)
    914  c5bd 60                     rts
    915                          
    916                          chkabsolutex:
-   917  c5be 84a5                   sty savelen
+   917  c5be 84a5                   sty savepos
    918  c5c0 b90002                 lda inputbuf, y
    919  c5c3 c924                   cmp #'$'
    920  c5c5 d001                   bne +
@@ -936,12 +936,12 @@
    934  c5e3 c4a4                   cpy len
    935  c5e5 d001                   bne ++
    936  c5e7 60                     rts ; Z true (EQ)
-   937  c5e8 a4a5               ++  ldy savelen
+   937  c5e8 a4a5               ++  ldy savepos
    938  c5ea a201                   ldx #1 ; Z false (NE)
    939  c5ec 60                     rts
    940                          
    941                          chkabsolutey:
-   942  c5ed 84a5                   sty savelen
+   942  c5ed 84a5                   sty savepos
    943  c5ef b90002                 lda inputbuf, y
    944  c5f2 c924                   cmp #'$'
    945  c5f4 d001                   bne +
@@ -961,12 +961,12 @@
    959  c612 c4a4                   cpy len
    960  c614 d001                   bne ++
    961  c616 60                     rts ; Z true (EQ)
-   962  c617 a4a5               ++  ldy savelen
+   962  c617 a4a5               ++  ldy savepos
    963  c619 a201                   ldx #1 ; Z false (NE)
    964  c61b 60                     rts
    965                          
    966                          chkindirect:
-   967  c61c 84a5                   sty savelen
+   967  c61c 84a5                   sty savepos
    968  c61e b90002                 lda inputbuf, y
    969  c621 c928                   cmp #'('
    970  c623 d021                   bne ++
@@ -986,7 +986,7 @@
    984  c641 c4a4                   cpy len
    985  c643 d001                   bne ++
    986  c645 60                     rts ; Z true (EQ)
-   987  c646 a4a5               ++  ldy savelen
+   987  c646 a4a5               ++  ldy savepos
    988  c648 a201                   ldx #1 ; Z false (NE)
    989  c64a 60                     rts
    990                          

@@ -93,7 +93,7 @@ size=$25
 ptr3=$26 ; and $27
 count=$a3
 len=$a4
-savelen=$a5
+savepos=$a5
 tmp2=$a6
 
 *=$c000
@@ -723,7 +723,7 @@ chkaccumulator:
 +   rts
 
 chkimmediate:
-    sty savelen
+    sty savepos
     lda inputbuf, y
     cmp #'#'
     bne ++
@@ -738,12 +738,12 @@ chkimmediate:
 +   cpy len
     bne ++
     rts
-++  ldy savelen
+++  ldy savepos
     ldx #1 ; Z false (NE)
     rts
 
 chkindirectx:
-    sty savelen
+    sty savepos
     lda inputbuf, y
     cmp #'('
     bne ++
@@ -773,12 +773,12 @@ chkindirectx:
     cpy len
     bne ++
     rts
-++  ldy savelen
+++  ldy savepos
     ldx #1 ; Z false (NE)
     rts
 
 chkindirecty:
-    sty savelen
+    sty savepos
     lda inputbuf, y
     cmp #'('
     bne ++
@@ -808,12 +808,12 @@ chkindirecty:
     cpy len
     bne ++
     rts
-++  ldy savelen
+++  ldy savepos
     ldx #1 ; Z false (NE)
     rts
 
 chkrelative:
-    sty savelen
+    sty savepos
     ldx instidx
     cpx #6 ; BIT
     beq ++
@@ -829,12 +829,12 @@ chkrelative:
     cpy len
     bne ++
     rts ; Z true (EQ)
-++  ldy savelen
+++  ldy savepos
     ldx #1 ; Z false (NE)
     rts
 
 chkzeropage:
-    sty savelen
+    sty savepos
     lda inputbuf, y
     cmp #'$'
     bne +
@@ -844,12 +844,12 @@ chkzeropage:
     cpy len
     bne ++
     rts ; Z true (EQ)
-++  ldy savelen
+++  ldy savepos
     ldx #1 ; Z false (NE)
     rts
 
 chkzeropagex:
-    sty savelen
+    sty savepos
     lda inputbuf, y
     cmp #'$'
     bne +
@@ -869,12 +869,12 @@ chkzeropagex:
     cpy len
     bne ++
     rts ; Z true (EQ)
-++  ldy savelen
+++  ldy savepos
     ldx #1 ; Z false (NE)
     rts
 
 chkzeropagey:
-    sty savelen
+    sty savepos
     lda inputbuf, y
     cmp #'$'
     bne +
@@ -894,12 +894,12 @@ chkzeropagey:
     cpy len
     bne ++
     rts ; Z true (EQ)
-++  ldy savelen
+++  ldy savepos
     ldx #1 ; Z false (NE)
     rts
 
 chkabsolute:
-    sty savelen
+    sty savepos
     lda inputbuf, y
     cmp #'$'
     bne +
@@ -909,12 +909,12 @@ chkabsolute:
     cpy len
     bne ++
     rts ; Z true (EQ)
-++  ldy savelen
+++  ldy savepos
     ldx #1 ; Z false (NE)
     rts
 
 chkabsolutex:
-    sty savelen
+    sty savepos
     lda inputbuf, y
     cmp #'$'
     bne +
@@ -934,12 +934,12 @@ chkabsolutex:
     cpy len
     bne ++
     rts ; Z true (EQ)
-++  ldy savelen
+++  ldy savepos
     ldx #1 ; Z false (NE)
     rts
 
 chkabsolutey:
-    sty savelen
+    sty savepos
     lda inputbuf, y
     cmp #'$'
     bne +
@@ -959,12 +959,12 @@ chkabsolutey:
     cpy len
     bne ++
     rts ; Z true (EQ)
-++  ldy savelen
+++  ldy savepos
     ldx #1 ; Z false (NE)
     rts
 
 chkindirect:
-    sty savelen
+    sty savepos
     lda inputbuf, y
     cmp #'('
     bne ++
@@ -984,7 +984,7 @@ chkindirect:
     cpy len
     bne ++
     rts ; Z true (EQ)
-++  ldy savelen
+++  ldy savepos
     ldx #1 ; Z false (NE)
     rts
 

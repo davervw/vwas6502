@@ -81,10 +81,10 @@
 	count	= $a3
 	len	= $a4
 	executedisplay1	= $c346	; ?
-	savelen	= $a5
 	executeassemble	= $c3b5
 	dispModeRel	= $c18f
 	executedisplay12	= $c34e	; ?
+	savepos	= $a5
 	tmp	= $ff
 	tmp2	= $a6
 	disp_opcode	= $c0be	; unused
