@@ -174,8 +174,6 @@ compareptrs:
 
 find_opcode: ; INPUT: .A opcode byte, OUTPUT: C flag set if found, .A instruction index, .X opcode index, .Y mode, otherwise C clear, and .A/.X/.Y all $FF
 ; and properties updated in ZP globals size,inidx,opidx,mode
-    ldy #1
-    sty size
     ldy #nopcodes
     ldx #nopcodes-1
 -   cmp opcodes,x
@@ -190,17 +188,26 @@ find_opcode: ; INPUT: .A opcode byte, OUTPUT: C flag set if found, .A instructio
     bcc ++
 +   lda instidx, x
     ldy modeidx, x
+    jsr getsize
+    sec
+++  sta inidx
+    stx opidx
+    sty mode
+    rts
+
+getsize: ; y is addressing mode index (0..12), registers untouched except status
+    ; result returned in size
+    pha
+    lda #1
+    sta size
+    pla
     cpy #2 // Immediate
     bcc +
     inc size
     cpy #9 // Absolute
     bcc +
     inc size
-+   sec
-++  sta inidx
-    stx opidx
-    sty mode
-    rts
++   rts
 
 disp_opcode: ; .A opcode byte
     jsr find_opcode
@@ -659,12 +666,37 @@ executeassemble:
     ;jsr skipspaces
     jsr chkinstruction
     beq +
--   jmp e
+-   jmp e    
 +   jsr disphexbyte
+    lda #' '
+    jsr charout
     jsr chkaddressing
     bne -
     jsr disphexbyte
-    ldx #0 ; Z true (EQ)
+    lda #' '
+    jsr charout
+    jsr find_inst_and_mode
+    bne -
+    ldx opidx
+    lda opcodes, x
+    jsr disphexbyte
+    lda #' '
+    jsr charout
+    lda size
+    jsr disphexbyte
+    lda #' '
+    jsr charout
+    lda size
+    cmp #2
+    bne +
+    lda tmp2
+    jsr disphexbyte
+    jmp ++
++   cmp #3
+    bne ++
+    lda ptr1
+    ldx ptr1+1
+    jsr disphexword
 ++  jmp newline
 
 chkaddressing: ; match input to addressing mode, note caller may need to adjust
@@ -714,13 +746,23 @@ chkaddressing: ; match input to addressing mode, note caller may need to adjust
     rts
 
 chkaccumulator:
-    ; TODO: ASL, LSR, ROL, ROR allowed not have no parameters
-    lda inputbuf, y
-    cmp #'A'
+    cpy len
     bne +
+    lda inidx
+    cmp #2 ; ASL
+    beq ++
+    cmp #32 ; LSR
+    beq ++
+    cmp #39 ; ROL
+    beq ++
+    cmp #40 ; ROR
+    jmp ++
++   lda inputbuf, y
+    cmp #'A'
+    bne ++
     lda inputbuf+1,y
-    cmp #13
-+   rts
+    cmp #13 ; Z set true/false whether parsed exactly
+++  rts
 
 chkimmediate:
     sty savepos
@@ -814,7 +856,7 @@ chkindirecty:
 
 chkrelative:
     sty savepos
-    ldx instidx
+    ldx inidx
     cpx #6 ; BIT
     beq ++
     lda inst0, x
@@ -1006,13 +1048,46 @@ chkinstruction:
     bne +
     iny
     txa
-    sta instidx
+    sta inidx
     ldx #0
     rts
 +   ldy tmp
     dex
     bpl -
 ++  ldx #1 ; Z false (NE)
+    rts
+
+find_inst_and_mode: ; INPUT: inidx & mode, OUTPUT: Z true: opidx & size, otherwise false
+    ; and allows mode promotion
+    jsr find_inst_and_mode2
+    beq ++
+    lda mode
+    cmp #6
+    bcc ++
+    cmp #10
+    bcs +
+    adc #3
+    sta mode ; promote ZeroPage modes to Absolute modes
+    jmp find_inst_and_mode2 ; try again once
++   ldx #1 ; Z false (NE)
+++  rts
+
+find_inst_and_mode2: ; INPUT: inidx & mode, OUTPUT: Z true: opidx & size, otherwise false
+    ldx #nopcodes-1
+-   lda instidx, x
+    ldy modeidx, x
+    cmp inidx
+    bne +
+    cpy mode
+    bne +
+    stx opidx
+    jsr getsize
+    ldx #0 ; Z true (EQ)
+    rts
++   dex
+    cpx #$ff
+    bne -
+    ldx #1 ; Z false (NE)
     rts
 
 executerun:
