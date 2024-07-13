@@ -30,7 +30,7 @@
 ;; VWAS2024 (C) 2024 DAVID R. VAN WAGNER
 ;; MIT LICENSE DAVEVW.COM
 ;; _
-;; INTERACTIVE SYNTAX >>> PLANNED, work in progress <<<
+;; INTERACTIVE SYNTAX >>> display/edit/run, and assemble/disassemble are working <<<
 ;; (WOZMON SIMILAR - note if wozmon present, could leverage existing code)
 ;; 1000 (display memory at $1000)
 ;; 1000.2000 (display memory range $1000 to $2000)
@@ -39,6 +39,7 @@
 ;; (NEW SYNTAX)
 ;; 1000 d (disassemble starting at, interactive until q or ESC)
 ;; 1000 a (assemble starting at, interactive until empty line) 
+;; (FUTURE SYNTAX, not implemented)
 ;; 1000.2000 "text" ? (search for text in address range inclusive)
 ;; 1000.2000 A9 FF ? (search for byte sequence in address range inclusive)
 ;; 1000.2000 3000 m (move bytes $1000-$2000 inclusive to $3000, left/right move as appropriate)
