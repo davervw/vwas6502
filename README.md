@@ -8,10 +8,12 @@ This repository consists of several parts.
 
 2. [6502 hosted disassembler](src/6502/README.md) On the path of creating an assembler is creating a disassembler.  Originally developed and tested on C64, using only character out so is trivial to port to another 6502 system.
 
-3. Ported this 6502 disassembler to [WozMon for Commodore](https://github.com/davervw/wozmon_cbm/tree/main) and [patches for Apple 1](https://github.com/davervw/wozmon_cbm/blob/main/vwas6502.hex) related systems.
+3. Ported this 6502 disassembler to [WozMon for Commodore](https://github.com/davervw/wozmon_cbm/tree/main) and [patches for Apple 1](https://github.com/davervw/wozmon_cbm/blob/main/vwas6502.hex) related systems.  [(blog entry)](https://techwithdave.davevw.com/2024/07/disassembler-for-use-with-wozmon.html)
 
 4. Remimplemented existing command syntax that WozMon uses, added D for disassembler.  It mostly feels like WozMon, but it's remade from scratch (no, doesn't fit in 256 bytes), and it requires C64 for now.
 
 5. Implemented the mini-assembler using syntax A.  (targeting C64)
+
+[Blogged about steps 4 & 5](https://techwithdave.davevw.com/2024/07/mini-assembler-with-disassembler.html)
 
 6. To be continued... 
