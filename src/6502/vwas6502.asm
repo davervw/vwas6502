@@ -165,6 +165,8 @@ find_opcode: ; INPUT: .A opcode byte, OUTPUT: C flag set if found, .A instructio
     dey
     bne -
     clc
+    lda #1
+    sta size
     lda #$FF
     tax
     tay
