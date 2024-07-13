@@ -601,14 +601,9 @@ executedisplay12:
     lda ptr1
     ldx ptr1+1
     jsr disphexword
-    lda #'.'
-    jsr charout
-    ldx #5
-    lda #157
--   jsr charout
-    dex
-    bne -
-    rts
+    lda #<page_displaymemory
+    ldx #>page_displaymemory
+    jmp strout
 ++  jmp newline
 
 executemodify:
@@ -1361,5 +1356,6 @@ modeidx !byte $01,$03,$06,$06,$01,$02,$00,$09,$09,$05,$04,$07,$07,$01,$0B,$0A,$0
 copyright !text 13,145,"VWAS6502 (C) 2024 DAVID R. VAN WAGNER", 13, "MIT LICENSE DAVEVW.COM", 157, 13, 0
 notimplemented !text "NOT IMPLEMENTED",13,0
 page_disassemble !text "D",157,157,157,157,157,0
+page_displaymemory !text ".",157,157,157,157,157,0
 
 finish = *
