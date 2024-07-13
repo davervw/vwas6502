@@ -32,3 +32,4 @@ Current status: built for Commodore 64 supporting screen editor, but very minima
 * Requires [ACME](https://sourceforge.net/projects/acme-crossass/), [VICE](https://vice-emu.sourceforge.io/), and a shell (e.g. bash) to build and run (see build.sh)
 * [D64](vwas6502.d64) drive image or [PRG](vwas6502.prg) file can be transported to a real C64 for use
 * Development works across Windows, Linux, and Mac
+* [Blog entry](https://techwithdave.davevw.com/2024/07/mini-assembler-with-disassembler.html) for mini-assembler and disassembler, [Twitter/X announcement](https://x.com/DaveRVW/status/1811912606825005540)
