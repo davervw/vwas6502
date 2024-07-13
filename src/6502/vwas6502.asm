@@ -1,6 +1,7 @@
 ;; vwas6502.asm - interactive console 6502 assembler
 ;;
-;; >>> STATUS: work in progress, disassembles itself <<<
+;; >>> STATUS: display/edit memory + run(JMP) + disassembler + assembler <<<
+;; >>>         targeting C64 for now...                                  <<<
 ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; MIT License
