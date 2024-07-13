@@ -96,6 +96,7 @@ count=$a3
 len=$a4
 savepos=$a5
 tmp2=$a6
+flag=$a7
 
 *=$c000
 start:
@@ -122,30 +123,8 @@ test: ; all the addressing modes here for testing disassembly
     ldx $12,y
     !byte $FF ; unknown
 
-+   lda #<copyright
-    ldx #>copyright
-    jsr strout   
-    lda #<start
-    ldx #>start
-    sta ptr1
-    stx ptr1+1
-    lda #<end
-    ldx #>end
-    sta ptr2
-    stx ptr2+1
-    jsr disassemble
-    lda ptr2
-    ldx ptr2+1
-    sta ptr1
-    stx ptr1+1
-    lda #<finish
-    ldx #>finish
-    sta ptr2
-    stx ptr2+1
-    jmp display_memory
-
 disassemble:
---  lda #24
+    lda #23
     sta count
 -   ldy #0
     lda (ptr1),y
@@ -161,9 +140,12 @@ disassemble:
     inc ptr1+1
 +   dec count
     bne -
-    jsr pagemore
-    bne --
-    rts
+    lda ptr1
+    ldx ptr1+1
+    jsr disphexword
+    lda #<page_disassemble
+    ldx #>page_disassemble
+    jmp strout
 
 compareptrs:
     lda ptr1+1
@@ -427,31 +409,6 @@ disphexnybble: ; .A 0..F
     adc #$06
 +   jmp charout
 
-display_memory:
---  lda ptr1
-    ldx ptr1+1
-    jsr disphexword
-    lda #$20
-    jsr charout
--   jsr compareptrs
-    bcs +
-    ldy #0
-    lda (ptr1),y
-    jsr disphexbyte
-    lda #$20
-    jsr charout
-+   inc ptr1
-    bne +
-    inc ptr1+1
-+   lda ptr1
-    and #$07
-    bne -
-    lda #13
-    jsr charout
-    jsr compareptrs
-    bcc --
-    rts
-    
 inputhexword: ; C set if fails
     tya
     tax ; save buffer pointer in x
@@ -564,8 +521,12 @@ executeaddr1:
     jmp executedisplay1
 +   jsr chkdot
     bne +
+    cpy len
+    beq ++
     jsr chkhexaddr2
     bne error
+    clc
+    ror flag
     jmp executeaddr12
 +   jsr skipspaces
     jsr chkcolon
@@ -574,8 +535,21 @@ executeaddr1:
 +   jsr chkaddr1cmd ; rda, will not return here if cmd
     jsr chkfilename
     bne error
-    beq executeloadfilename
-    brk ; will never get here
+    jmp executeloadfilename
+++  lda ptr1
+    clc
+    adc #$b7
+    sta ptr2
+    lda ptr1+1
+    adc #$00
+    sta ptr2+1
+    bcc +
+    lda #$ff
+    sta ptr2
+    sta ptr2+1
++   sec
+    ror flag
+    ; fall through to executeaddr12
 
 executeaddr12:
     cpy len
@@ -618,8 +592,21 @@ executedisplay12:
 +   jsr compareptrs
     bcc -
     beq -
-++  lda #13
-    jmp charout
+    bit flag
+    bpl ++
+    jsr newline
+    lda ptr1
+    ldx ptr1+1
+    jsr disphexword
+    lda #'.'
+    jsr charout
+    ldx #5
+    lda #157
+-   jsr charout
+    dex
+    bne -
+    rts
+++  jmp newline
 
 executemodify:
     jsr skipspaces
@@ -1244,9 +1231,6 @@ chkhexbyteofsequence:
 ++  rts
 
 chkhexword:
-    jsr inputhexword
-    jmp +
-
 chkhexaddr1:
     jsr inputhexword
 +   ldx #0 ; Z true (EQ)
@@ -1312,18 +1296,6 @@ newline:
     lda #13
     jmp charout
 
-pagemore:
-    lda #<pagemoremsg
-    ldx #>pagemoremsg
-    jsr strout
--   jsr getkey
-    beq -
-    pha
-    jsr newline
-    pla
-    cmp #'Q'
-    rts
-
 ; charout: ; for debugging, wait for scan line to pass over entire screen at least once
 ;     jsr $ffd2
 ;     pha
@@ -1385,6 +1357,6 @@ modeidx !byte $01,$03,$06,$06,$01,$02,$00,$09,$09,$05,$04,$07,$07,$01,$0B,$0A,$0
 
 copyright !text 13,145,"VWAS2024 (C) 2024 DAVID R. VAN WAGNER", 13, "MIT LICENSE DAVEVW.COM", 157, 13, 0
 notimplemented !text "NOT IMPLEMENTED",13,0
-pagemoremsg !text "([Q] TO QUIT, ELSE CONTINUE)...",0
+page_disassemble !text "D",157,157,157,157,157,0
 
 finish = *
