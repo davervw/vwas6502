@@ -29,3 +29,6 @@ Current status: built for Commodore 64 supporting screen editor, but very minima
 * This monitor is borrowing the look and feel of [WozMon](https://github.com/davervw/wozmon_cbm) (of Apple 1 fame).  Commands are similar, but not exact behavior and syntax as this is brand new code, and a different command parser.
 * Goal is to port this monitor for use with my minimal 6502 emulated environment [(Twitter/X announcement)](https://x.com/DaveRVW/status/1787386286552268934) delivered with the [c-simple-emu6502-cbm terminal version](https://github.com/davervw/c-simple-emu6502-cbm) and [(unified) graphical version](https://github.com/davervw/c-simple-emu6502-cbm/tree/unified).
 * With a tiny bit of work, this monitor could work on virtually any 6502 8-bit computer, or 6502 single board computer, that supports character input/output and a screen or terminal display
+* Requires [ACME](https://sourceforge.net/projects/acme-crossass/), [VICE](https://vice-emu.sourceforge.io/), and a shell (e.g. bash) to build and run (see build.sh)
+* [D64](vwas6502.d64) drive image or [PRG](vwas6502.prg) file can be transported to a real C64 for use
+* Development works across Windows, Linux, and Mac
