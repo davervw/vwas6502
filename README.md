@@ -8,4 +8,4 @@ This repository consists of two parts.
 
 1. [Desktop hosted C# assembler](src/dotnet/README.md) The interactive console 6502 assembler was an exercise/prototype in assembling text input into 6502 machine code bytes using a modern high level programming language (C#).  Output is only to the screen.  Requires Windows/Linux/Mac or other system capable of running a C# .NET program.
 
-2. [6502 monitor](src/6502/README.md) is a 6502 hosted monitor (currently C64 at $C000) planned to support more 6502.   This is the main thrust of the current effort.
+2. [6502 monitor](src/6502/README.md) is a 6502 hosted monitor supporting Commodore 64 (loaded at $C000), and supporting minimum 6502 + MC6850 system (4K ROM at $F000)
