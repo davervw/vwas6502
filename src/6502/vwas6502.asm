@@ -508,7 +508,10 @@ parseline:
     jsr skipspaces
     cpy len
     beq -
-    jsr chkdot
+    jsr chkcontinuedis
+    bne +
+    jsr executedisassemble ; note won't return
++   jsr chkdot
     bne +
     jmp executedot
 +   jsr chkhelp
@@ -1150,6 +1153,17 @@ executerun:
     lda ptr1
     pha
     rts
+
+chkcontinuedis:
+    lda inputbuf,y
+    cmp #'D'
+    bne +
+    lda inputbuf+1,y
+    cmp #13
+    beq +
+    iny
+    ldx #1 ; guarantee NE
++   rts
 
 executedisassemble:
     pla ; remove low byte return address
