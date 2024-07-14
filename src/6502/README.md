@@ -7,9 +7,10 @@ Current status: built for Commodore 64 supporting screen editor, but very minima
 ![screenshot](media/display_assemble_run.png)
 
 ## Display
-``1000`` display memory byte contents
-``1000.100F`` display memory range contents
-``1000.`` display screenfull of memory
+``1000`` display memory byte contents  
+``1000.100F`` display memory range contents  
+``1000.`` display screenfull of memory  
+``.`` display next screenfull of memory
 
 ## Modify
 ``1000: 01 02 03`` modify memory contents
@@ -21,7 +22,8 @@ Current status: built for Commodore 64 supporting screen editor, but very minima
 ``1000 A`` assemble at address
 
 ## Disassemble
-``1000 D`` disassemble screenfull
+``1000 D`` disassemble screenfull  
+``D`` disassemble next screenfull
 
 ## Notes
 
