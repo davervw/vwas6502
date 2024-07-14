@@ -584,6 +584,8 @@ parseline:
 -
 !ifdef C64SCREEN {   
     jmp newline
+} else {
+    rts
 }
 +   dey
     sty len
