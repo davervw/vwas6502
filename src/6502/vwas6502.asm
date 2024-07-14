@@ -28,8 +28,18 @@
 ;; SOFTWARE.
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-;; VWAS6502 (C) 2024 DAVID R. VAN WAGNER
-;; MIT LICENSE DAVEVW.COM
+;; DEFINES ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+; Important! define exactly ONE target
+C64SCREEN = 1
+;C64TERMINAL = 1
+;MINIMUM = 1
+
+; options
+NEEDECHO = 0
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
 ;; _
 ;; INTERACTIVE SYNTAX >>> display/edit/run, and assemble/disassemble are working <<<
 ;; (WOZMON SIMILAR - note if wozmon present, could leverage existing code)
@@ -41,6 +51,7 @@
 ;; 1000: 01 02 03 (modify memory)
 ;; (NEW SYNTAX)
 ;; 1000 d (disassemble starting at address, for screenful)
+;; d (continue disassembling from last address)
 ;; 1000 a (assemble starting at, interactive until empty line) 
 ;; (FUTURE SYNTAX, not implemented)
 ;; 1000.2000 "text" ? (search for text in address range inclusive)
@@ -83,8 +94,11 @@ inputbuf=$0200
 
 ; kernal/system calls
 charout=$ffd2
-charin=$ffcf ; screen editor
 getkey=$ffe4
+
+!ifdef C64SCREEN {
+charin=$ffcf ; screen editor
+}
 
 ; zeropage
 ptr1=$fb ; and $fc
@@ -143,12 +157,16 @@ disassemble:
     inc ptr1+1
 +   dec count
     bne -
+!ifdef C64SCREEN {
     lda ptr1
     ldx ptr1+1
     jsr disphexword
     lda #<page_disassemble
     ldx #>page_disassemble
     jmp strout
+} else {    
+    rts
+}
 
 compareptrs:
     lda ptr1+1
@@ -480,6 +498,7 @@ strout:
 +   rts
 
 inputline:
+!ifdef C64SCREEN {
     ldy #0
 -   jsr charin
     sta inputbuf,y
@@ -487,11 +506,45 @@ inputline:
     cmp #13
     bne -
 +   rts
+} else {
+    ldy #0
+--  sty count
+-   jsr getkey
+    beq -
+    ldy count
+    cmp #20
+    bne +
+    cpy #0
+    beq -
+    dey
+!if NEEDECHO = 1 {    
+    jsr charout
+}
+    jmp --
++   cmp #13
+    beq +
+    cmp #' '
+    bcc -
+    cmp #128
+    bcs -
++
+!if NEEDECHO = 1 {    
+    jsr charout
+}
+    sta inputbuf,y
+    iny
+    cmp #13
+    bne --
+    rts
+}
 
 parseline:
     cpy #1
     bne +
--   jmp newline
+-
+!ifdef C64SCREEN {   
+    jmp newline
+}
 +   dey
     sty len
     ; skip whitespace
@@ -604,6 +657,7 @@ executedisplay12:
     beq -
     bit flag
     bpl ++
+!ifdef C64SCREEN {
     jsr newline
     lda ptr1
     ldx ptr1+1
@@ -611,6 +665,7 @@ executedisplay12:
     lda #<page_displaymemory
     ldx #>page_displaymemory
     jmp strout
+}
 ++  jmp newline
 
 executemodify:
@@ -643,9 +698,17 @@ executehelp:
 executeassemble:
     pla ; remove low byte return address
     pla ; return high byte return address
+!ifdef C64SCREEN {    
     lda #20
     jsr charout
     jsr charout
+} else {
+    lda ptr1
+    ldx ptr1+1
+    jsr disphexword
+    lda #' '
+    jsr charout
+}
     ; save current pointer
 --  lda ptr1
     ldx ptr1+1
@@ -669,7 +732,7 @@ executeassemble:
     bne -
     jsr find_inst_and_mode
     bne -
-    jsr store_assembly
+    jsr store_assembly ; TODO disassemble on screen as assemble for validation
     clc
     lda size
     adc ptr3
@@ -677,14 +740,21 @@ executeassemble:
     lda ptr3+1
     adc #0
     sta ptr1+1
-    jsr newline ; TODO disassemble on screen as assemble for validation
+!ifdef C64SCREEN {    
+    jsr newline
+}
     lda ptr1
     ldx ptr1+1
     jsr disphexword
     lda #' '
     jsr charout
     jmp --
-++  jmp newline
+++  
+!ifdef C64SCREEN {
+    jmp newline
+} else {
+    rts
+}
 
 store_assembly:
     ldx opidx
@@ -1354,6 +1424,7 @@ mode_jmptable:
 !word dispModeAbsY-1 ; 11 AbsoluteY 3
 !word dispModeInd-1 ; 12 Indirect 3
 
+!if 0=1 { ; TODO: HELP
 mode_examples:
 !text "A", 0 ; 0 Accumulator
 !text "", 0 ; 1 None
@@ -1368,6 +1439,7 @@ mode_examples:
 !text "$1234,X", 0 ; 10 AbsoluteX
 !text "$1234,Y", 0 ; 11 AbsoluteY
 !text "($1234)", 0 ; 12 Indirect
+}
 
 ; opcode table of byte values (opcodes), instructions, and addressing modes
 nopcodes = 151
@@ -1375,9 +1447,16 @@ opcodes !byte $00,$01,$05,$06,$08,$09,$0A,$0D,$0E,$10,$11,$15,$16,$18,$19,$1D,$1
 instidx !byte $0A,$22,$22,$02,$24,$22,$02,$22,$02,$09,$22,$22,$02,$0D,$22,$22,$02,$1C,$01,$06,$01,$27,$26,$01,$27,$06,$01,$27,$07,$01,$01,$27,$2C,$01,$01,$27,$29,$17,$17,$20,$23,$17,$20,$1B,$17,$20,$0B,$17,$17,$20,$0F,$17,$17,$20,$2A,$00,$00,$28,$25,$00,$28,$1B,$00,$28,$0C,$00,$00,$28,$2E,$00,$00,$28,$2F,$31,$2F,$30,$16,$35,$31,$2F,$30,$03,$2F,$31,$2F,$30,$37,$2F,$36,$2F,$1F,$1D,$1E,$1F,$1D,$1E,$33,$1D,$32,$1F,$1D,$1E,$04,$1D,$1F,$1D,$1E,$10,$1D,$34,$1F,$1D,$1E,$13,$11,$13,$11,$14,$1A,$11,$15,$13,$11,$14,$08,$11,$11,$14,$0E,$11,$11,$14,$12,$2B,$12,$2B,$18,$19,$2B,$21,$12,$2B,$18,$05,$2B,$2B,$18,$2D,$2B,$2B,$18
 modeidx !byte $01,$03,$06,$06,$01,$02,$00,$09,$09,$05,$04,$07,$07,$01,$0B,$0A,$0A,$09,$03,$06,$06,$06,$01,$02,$00,$09,$09,$09,$05,$04,$07,$07,$01,$0B,$0A,$0A,$01,$03,$06,$06,$01,$02,$00,$09,$09,$09,$05,$04,$07,$07,$01,$0B,$0A,$0A,$01,$03,$06,$06,$01,$02,$00,$0C,$09,$09,$05,$04,$07,$07,$01,$0B,$0A,$0A,$03,$06,$06,$06,$01,$01,$09,$09,$09,$05,$04,$07,$07,$08,$01,$0B,$01,$0A,$02,$03,$02,$06,$06,$06,$01,$02,$01,$09,$09,$09,$05,$04,$07,$07,$08,$01,$0B,$01,$0A,$0A,$0B,$02,$03,$06,$06,$06,$01,$02,$01,$09,$09,$09,$05,$04,$07,$07,$01,$0B,$0A,$0A,$02,$03,$06,$06,$06,$01,$02,$01,$09,$09,$09,$05,$04,$07,$07,$01,$0B,$0A,$0A
 
-copyright !text 13,145,"VWAS6502 (C) 2024 DAVID R. VAN WAGNER", 13, "MIT LICENSE DAVEVW.COM", 157, 13, 0
+copyright !text 13,"VWAS6502 (C) 2024 DAVID R. VAN WAGNER", 13, "MIT LICENSE DAVEVW.COM"
+!ifdef C64TERMINAL {
+    !text 13, "(TERMINAL VERSION)"
+}
+!byte 13, 0
 notimplemented !text "NOT IMPLEMENTED",13,0
+
+!ifdef C64SCREEN {
 page_disassemble !text "D",157,157,157,157,157,0
 page_displaymemory !text ".",157,157,157,157,157,0
+}
 
 finish = *
