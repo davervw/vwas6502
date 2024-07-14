@@ -2,9 +2,13 @@
 
 Monitor with mini-assembler and disassembler
 
-Current status: built for both (1) Commodore 64 supporting screen editor, and (2) minimal 6502 + MC6850 UART system .  It is very minimalistic so can be ported to other 6502 systems commercial and hobbyist.
+**Current status**: working on two systems, designed to be ported to other 6502 systems, both commercial and hobbyist
 
+## (1) C64 with screen editor (or without)
 ![screenshot](media/display_assemble_run.png)
+
+## (2) minimal 6502 + MC6850 UART system
+![screenshot](media/minimum.png)
 
 ## Display
 ``1000`` display memory byte contents  
