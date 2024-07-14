@@ -40,6 +40,7 @@ Current status: built for both (1) Commodore 64 supporting screen editor, and (2
 ## Download
 
 * [D64](vwas6502.d64) drive image or [PRG](vwas6502.prg) file can be transported to a real C64 for use
+* The [BIN](vwas6502.bin) firmware file is for use with [c-simple-emu6502-cbm](https://github.com/davervw/c-simple-emu6502-cbm), both the main branch (text console terminal), and unified branch (LCD and Windows graphics)
 
 ## More Links
 
