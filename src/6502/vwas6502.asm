@@ -35,7 +35,8 @@
 ;; (WOZMON SIMILAR - note if wozmon present, could leverage existing code)
 ;; 1000 (display memory at $1000)
 ;; 1000.2000 (display memory range $1000 to $2000)
-;; 1000. (display page of memory starting at $1000)
+;; 1000. (display next screenful of memory starting at $1000)
+;; . (display next screenful of memory)
 ;; 1000 r (JMP $1000)
 ;; 1000: 01 02 03 (modify memory)
 ;; (NEW SYNTAX)
@@ -46,7 +47,7 @@
 ;; 1000.2000 A9 FF ? (search for byte sequence in address range inclusive)
 ;; 1000.2000 3000 m (move bytes $1000-$2000 inclusive to $3000, left/right move as appropriate)
 ;; 1000.2000: 01 02 03 (fill bytes to inclusive address range)
-;; . (display registers, VICE format or custom? screen editor changeable?)
+;; .? (display registers, VICE format or custom? screen editor changeable?)
 ;; .A 00 (change register, replace A with X, Y, SP, PC, SR, N, V, B, D, I, Z, C as appropriate)
 ;; 1000.2000 "filename" 08 save (save range of bytes from $1000 up to not including $2000, Commodore drive address is optional, can abbreviate to s)
 ;; 1000 "filename" 08 load (load absolute, address optional, drive address is optional, can abbreviate to l)
@@ -526,7 +527,7 @@ executeaddr1:
 +   jsr chkdot
     bne +
     cpy len
-    beq ++
+    beq executepagedisplay
     jsr chkhexaddr2
     bne error
     clc
@@ -540,7 +541,9 @@ executeaddr1:
     jsr chkfilename
     bne error
     jmp executeloadfilename
-++  lda ptr1
+
+executepagedisplay:
+    lda ptr1
     clc
     adc #$b7
     sta ptr2
@@ -624,11 +627,15 @@ executemodify:
     bne executemodify
 ++  jmp newline
 
-executeloadfilename:
 executedot:
+    cpy len
+    bne +
+    jmp executepagedisplay
+
+executeloadfilename:
 executeaddr1cmd:
 executehelp:
-    jmp reportnotimplemented
++   jmp reportnotimplemented
 
 executeassemble:
     pla ; remove low byte return address
