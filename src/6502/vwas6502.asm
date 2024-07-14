@@ -541,7 +541,7 @@ inputline:
     iny
     cmp #13
     bne -
-+   rts
+    rts
 } else {
     ldy #0
 --  sty count
@@ -1282,9 +1282,9 @@ chkcontinuedis:
     bne +
     lda inputbuf+1,y
     cmp #13
-    beq +
+    bne +
     iny
-    ldx #1 ; guarantee NE
+    ldx #0 ; restore Z set
 +   rts
 
 executedisassemble:
