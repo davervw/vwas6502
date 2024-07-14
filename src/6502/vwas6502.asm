@@ -156,6 +156,9 @@ start:
     lda #<copyright
     ldx #>copyright
     jsr strout
+    lda #<firsthelp
+    ldx #>firsthelp
+    jsr strout
 -   jsr inputline
     jsr parseline
     jmp -
@@ -256,7 +259,7 @@ disp_opcode: ; .A opcode byte
     txa
     ; fall through to display instruction
 
-dispinst: ; .A instruction index 0..55
+dispinst: ; .A instruction index 0..55, note modifies A and X
     tax
     cpx #ninst
     bcs +
@@ -746,8 +749,55 @@ executedot:
 
 executeloadfilename:
 executeaddr1cmd:
-executehelp:
 +   jmp reportnotimplemented
+
+executehelp:
+!ifdef C64SCREEN {
+    jsr newline
+}
+    cpy len
+    bne +
+    jmp displayhelp
++   jsr skipspaces
+    jsr chkhelpinstructions
+    bne +
+    jmp displayinstructions
++   jmp reportnotimplemented
+
+displayhelp:
+    lda #<generalhelp
+    ldx #>generalhelp
+    jsr strout
+    lda #<generalhelp2
+    ldx #>generalhelp2
+    jsr strout
+    lda #<firsthelp
+    ldx #>firsthelp
+    jmp strout
+
+chkhelpinstructions:
+    lda inputbuf, y
+    cmp #'A'
+    bne +
+    lda inputbuf+1, y
+    cmp #13
+    ; no need to increment y if found, done parsing line
++   rts
+
+displayinstructions:
+    ldy #ninst
+    ldx #0
+-   txa
+    pha
+    jsr dispinst
+    lda #' '
+    jsr charout
+    pla
+    tax
+    inx
+    dey
+    bne -
+    jmp newline
 
 executeassemble:
     pla ; remove low byte return address
@@ -1572,12 +1622,39 @@ opcodes !byte $00,$01,$05,$06,$08,$09,$0A,$0D,$0E,$10,$11,$15,$16,$18,$19,$1D,$1
 instidx !byte $0A,$22,$22,$02,$24,$22,$02,$22,$02,$09,$22,$22,$02,$0D,$22,$22,$02,$1C,$01,$06,$01,$27,$26,$01,$27,$06,$01,$27,$07,$01,$01,$27,$2C,$01,$01,$27,$29,$17,$17,$20,$23,$17,$20,$1B,$17,$20,$0B,$17,$17,$20,$0F,$17,$17,$20,$2A,$00,$00,$28,$25,$00,$28,$1B,$00,$28,$0C,$00,$00,$28,$2E,$00,$00,$28,$2F,$31,$2F,$30,$16,$35,$31,$2F,$30,$03,$2F,$31,$2F,$30,$37,$2F,$36,$2F,$1F,$1D,$1E,$1F,$1D,$1E,$33,$1D,$32,$1F,$1D,$1E,$04,$1D,$1F,$1D,$1E,$10,$1D,$34,$1F,$1D,$1E,$13,$11,$13,$11,$14,$1A,$11,$15,$13,$11,$14,$08,$11,$11,$14,$0E,$11,$11,$14,$12,$2B,$12,$2B,$18,$19,$2B,$21,$12,$2B,$18,$05,$2B,$2B,$18,$2D,$2B,$2B,$18
 modeidx !byte $01,$03,$06,$06,$01,$02,$00,$09,$09,$05,$04,$07,$07,$01,$0B,$0A,$0A,$09,$03,$06,$06,$06,$01,$02,$00,$09,$09,$09,$05,$04,$07,$07,$01,$0B,$0A,$0A,$01,$03,$06,$06,$01,$02,$00,$09,$09,$09,$05,$04,$07,$07,$01,$0B,$0A,$0A,$01,$03,$06,$06,$01,$02,$00,$0C,$09,$09,$05,$04,$07,$07,$01,$0B,$0A,$0A,$03,$06,$06,$06,$01,$01,$09,$09,$09,$05,$04,$07,$07,$08,$01,$0B,$01,$0A,$02,$03,$02,$06,$06,$06,$01,$02,$01,$09,$09,$09,$05,$04,$07,$07,$08,$01,$0B,$01,$0A,$0A,$0B,$02,$03,$06,$06,$06,$01,$02,$01,$09,$09,$09,$05,$04,$07,$07,$01,$0B,$0A,$0A,$02,$03,$06,$06,$06,$01,$02,$01,$09,$09,$09,$05,$04,$07,$07,$01,$0B,$0A,$0A
 
-copyright !text 13,"VWAS6502 (C) 2024 DAVID R. VAN WAGNER", 13, "MIT LICENSE DAVEVW.COM"
+copyright 
+;                  1         2         3         4
+;         1234567890123456789012345678901234567890
+!text 13,"6502 MONITOR AND MINI-ASSEMBLER"
 !ifdef C64TERMINAL {
     !text 13, "(TERMINAL VERSION)"
 }
-!byte 13, 0
+!text 13,"VWAS6502 (C) 2024 DAVID R. VAN WAGNER"
+!text 13, "MIT LICENSE DAVEVW.COM"
+!text 0
+
+firsthelp
+!text 13, "? (FOR SYNTAX)"
+!text 13, "? A (FOR 6502 INSTRUCTIONS)"
+!text 13, "? MODES (FOR INSTRUCTION MODES)"
+;!text 13, "? KEYWORD FOR EXAMPLE(S)"
+!text 13, 0
+
 notimplemented !text "NOT IMPLEMENTED",13,0
+
+generalhelp
+!text "1000        (DISPLAY MEMORY CONTENTS)",13
+!text "1000.100F   (DISPLAY RANGE CONTENTS)", 13
+!text "1000.       (SCREENFULL OF MEMORY)", 13
+!text ".           (NEXT SCREENFULL OF MEMORY)", 13
+!text "1000: 01 02 (MODIFY MEMORY)", 13
+!text "1000 R      (RUN PROGRAM - JMP)", 13
+!text "1000 A      (ASSEMBLE AT ADDRESS)", 13
+!text 0
+generalhelp2
+!text "1000 D      (DISASSEMBLE AT ADDRESS)", 13
+!text "D           (DISASSEMBLE MORE)", 13
+!text 0
 
 !ifdef C64SCREEN {
 page_disassemble !text "D",157,157,157,157,157,0
