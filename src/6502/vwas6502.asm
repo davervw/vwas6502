@@ -101,8 +101,8 @@ inputbuf=$0200
 ; kernal/system calls
 
 !ifdef MINIMUM {
-charout=UART_OUT
-getkey=UART_IN
+charout=JUART_OUT
+getkey=JUART_IN
 }
 
 !ifdef C64SCREEN {
@@ -1504,11 +1504,11 @@ UART_CHK: ; set or clear N flag based on read ready (character waiting)
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; Processor start and interrupts
 
-NMI:
+NMI: ; unused on minimum (no source of interrupt)
     rti
 
 IRQ:
-    rti ; TODO BRK HANDLING
+    rti ; TODO implement BRK HANDLING in monitor
 
 BREAK:
     jmp RESET
@@ -1517,7 +1517,7 @@ RESET:
     cld
     ldx #$00
     txs
-    jsr UART_INIT
+    jsr JUART_INIT
     cli
     jmp start
 } ; !ifdef MINIMUM
@@ -1583,6 +1583,14 @@ page_displaymemory !text ".",157,157,157,157,157,0
 }
 
 !ifdef MINIMUM {
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; JUMP table for consistency
+* = $FE00
+JUART_INIT: JMP UART_INIT
+JUART_OUT: JMP UART_OUT
+JUART_IN: JMP UART_IN
+JUART_CHK: JMP UART_CHK
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; 6502 vectors 
 * = $fffa
