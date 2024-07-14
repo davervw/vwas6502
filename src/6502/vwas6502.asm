@@ -1,7 +1,12 @@
 ;; vwas6502.asm - interactive console 6502 assembler
 ;;
 ;; >>> STATUS: display/edit memory + run(JMP) + disassembler + assembler <<<
-;; >>>         targeting C64 for now...                                  <<<
+;; >>>                     *** MULTIPLATFORM ***                         <<< 
+;; >>>       ****************************************************        <<< 
+;; >>>       **           TARGET  C64 and...                    *        <<<
+;; >>>       ** INCLUDES VERSION FOR 6502+MC6850 minimum system *        <<<
+;; >>>       *   60K(RAM),4K(ROM), 2 bytes IO for MC6850 UART   *        <<<
+;; >>>       ****************************************************        <<<
 ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; MIT License
@@ -30,13 +35,13 @@
 
 ;; DEFINES ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-; Important! define exactly ONE target
-C64SCREEN = 1
+; Important! define exactly ONE target (set in build.sh)
+;C64SCREEN = 1
 ;C64TERMINAL = 1
 ;MINIMUM = 1
 
-; options
-NEEDECHO = 0
+; options (set in build.sh)
+;NEEDECHO = 0
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -92,15 +97,41 @@ NEEDECHO = 0
 ; global
 inputbuf=$0200
 
+
 ; kernal/system calls
-charout=$ffd2
-getkey=$ffe4
+
+!ifdef MINIMUM {
+charout=UART_OUT
+getkey=UART_IN
+}
 
 !ifdef C64SCREEN {
 charin=$ffcf ; screen editor
+charout=$ffd2
+getkey=$ffe4
+}
+
+!ifdef C64TERMINAL {
+charout=$ffd2
+getkey=$ffe4
 }
 
 ; zeropage
+!ifdef MINIMUM {
+opidx=$f0
+inidx=$f1
+mode=$f2
+size=$f3
+ptr3=$f4 ; and $f5
+count=$f6
+len=$f7
+savepos=$f8
+tmp2=$f9
+flag=$fa
+ptr1=$fb ; and $fc
+ptr2=$fd ; and $fe
+tmp=$ff
+} else {
 ptr1=$fb ; and $fc
 ptr2=$fd ; and $fe
 tmp=$ff
@@ -114,8 +145,13 @@ len=$a4
 savepos=$a5
 tmp2=$a6
 flag=$a7
+}
 
+!ifdef MINIMUM {
+*=$f000
+} else {
 *=$c000
+}
 start:
     lda #<copyright
     ldx #>copyright
@@ -512,7 +548,11 @@ inputline:
 -   jsr getkey
     beq -
     ldy count
+!ifdef MINIMUM {
+    cmp #8 ; backspace
+} else {
     cmp #20
+}
     bne +
     cpy #0
     beq -
@@ -601,10 +641,18 @@ executeaddr1:
 executepagedisplay:
     lda ptr1
     clc
+!ifdef MINIMUM {
+    adc #$5f
+} else {
     adc #$b7
+}
     sta ptr2
     lda ptr1+1
+!ifdef MINIMUM {
+    adc #$01
+} else {
     adc #$00
+}
     sta ptr2+1
     bcc +
     lda #$ff
@@ -632,7 +680,11 @@ executedisplay12:
     sta count
 -   inc count
     lda count
+!ifdef MINIMUM {    
+    and #$0f
+} else {
     and #$07
+}
     bne +
     lda #13
     jsr charout
@@ -1400,7 +1452,78 @@ newline:
 ;     pla
 ;     rts
 
-end: brk
+!ifdef MINIMUM {
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; MC6850
+UART_DATA=$FFF8
+UART_STCR=$FFF9
+
+UART_INIT:
+	ldx #0b00000111 ; 11=reset device
+	stx UART_STCR
+	inx ; #0b00001000 ; 0=rint disabled, 00=rtsn low, tint disabled 010=7e1 00=div 1
+	sta UART_STCR
+	rts
+UART_OUT:
+	pha
+-	lda UART_STCR
+	and #2
+	beq - ; branch if TDRE=0, not finished transmitting
+	pla
+	pha
+	and #$7F ; force 7-bit ASCII output, mask out any high bit
+	sta UART_DATA
+	pla
+	rts
+UART_IN:
+-	lda UART_STCR
+	and #1
+	beq - ; branch if TDRF=0, not received
+	lda UART_DATA
+	; software "CAPS LOCK" because wozmon expects only uppercase
+	cmp #$1C ; ^\ to act like a BRK, to return to monitor, if reading keys
+	beq BREAK
+    cmp #$61
+	bcc +
+	cmp #$7b
+	bcs +
+	eor #$20
++	;ora #$80 ; Apple Model 1 expects 7-bit with marked parity (8th bit always set)
+ 	rts
+UART_CHK: ; set or clear N flag based on read ready (character waiting)
+	pha ; save A
+	lda UART_STCR
+	lsr ; put rightmost bit in carry
+	pla ; restore A affects flags
+	ror ; move carry to left bit, right bit to carry
+	php ; push processor to save N
+	rol ; restore A affects flags
+	plp ; pull processor to restore N
+	rts
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; Processor start and interrupts
+
+NMI:
+    rti
+
+IRQ:
+    rti ; TODO BRK HANDLING
+
+BREAK:
+    jmp RESET
+
+RESET:
+    cld
+    ldx #$00
+    txs
+    jsr UART_INIT
+    cli
+    jmp start
+} ; !ifdef MINIMUM
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; data
 
 ; instruction textual mnuemonic first, second, third letters (read down in source)
 ninst = 56
@@ -1457,6 +1580,15 @@ notimplemented !text "NOT IMPLEMENTED",13,0
 !ifdef C64SCREEN {
 page_disassemble !text "D",157,157,157,157,157,0
 page_displaymemory !text ".",157,157,157,157,157,0
+}
+
+!ifdef MINIMUM {
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; 6502 vectors 
+* = $fffa
+    !word NMI
+    !word RESET
+    !word IRQ
 }
 
 finish = *
