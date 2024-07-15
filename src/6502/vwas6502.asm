@@ -762,6 +762,9 @@ executehelp:
     jsr chkhelpinstructions
     bne +
     jmp displayinstructions
++   jsr chkhelpmodes
+    bne +
+    jmp displaymodes
 +   jmp reportnotimplemented
 
 displayhelp:
@@ -784,6 +787,30 @@ chkhelpinstructions:
     ; no need to increment y if found, done parsing line
 +   rts
 
+chkhelpmodes:
+    lda #<modes_keyword
+    ldx #>modes_keyword
+    ; fall through to chkkeyword
+
+chkkeyword:
+    sty count
+    sta ptr3
+    stx ptr3+1
+    ldx count
+    ldy #0
+-   lda inputbuf, x
+    cmp (ptr3),y
+    bne +
+    inx
+    iny
+    cpx len
+    bne -
+    lda (ptr3),y ; matched if end of string, will set Z
++   php ; save Z
+    ldy count
+    plp ; restore Z
+    rts
+
 displayinstructions:
     ldy #ninst
     ldx #0
@@ -797,6 +824,65 @@ displayinstructions:
     inx
     dey
     bne -
+    jmp newline
+
+displaymodes:
+    sec
+    lda #0
+-   pha
+    tax
+    lda mode_sorted, x
+    jsr dispmode
+    pla
+    clc
+    adc #1
+    cmp #nmodes
+    bcc -
+    clc
+    rts
+
+dispmode:
+    cmp #nmodes
+    bcc +
+    rts
++   sta mode
+    asl
+    tax
+    lda mode_examples, x
+    pha
+    lda mode_examples+1, x
+    tax
+!ifdef C64SCREEN {
+    lda #18
+    jsr charout
+}    
+    pla
+    jsr strout
+!ifdef C64SCREEN {    
+    lda #146
+    jsr charout
+ 
+    ; 3 IndirectX and 4 IndirectY are the same, so compact them together to fit on screen
+    lda mode
+    cmp #3
+    bne +
+    lda #' '
+    jmp charout
+}
+    ; display instructions with this mode
++   ldx #0
+-   stx tmp
+    lda modeidx, x
+    cmp mode
+    bne ++
+    lda #' '
+    jsr charout
+    lda instidx, x
+    jsr dispinst
+    ldx tmp
+++  inx
+    cpx #nopcodes
+    bcc -
     jmp newline
 
 executeassemble:
@@ -1535,9 +1621,10 @@ UART_IN:
 	; software "CAPS LOCK" because wozmon expects only uppercase
 	cmp #$1C ; ^\ to act like a BRK, to return to monitor, if reading keys
 	beq BREAK
-    cmp #$61
+    ; force lowercase alphabet to uppercase
+    cmp #'a'
 	bcc +
-	cmp #$7b
+	cmp #'z'+1
 	bcs +
 	eor #$20
 +	;ora #$80 ; Apple Model 1 expects 7-bit with marked parity (8th bit always set)
@@ -1599,22 +1686,55 @@ mode_jmptable:
 !word dispModeAbsY-1 ; 11 AbsoluteY 3
 !word dispModeInd-1 ; 12 Indirect 3
 
-!if 0=1 { ; TODO: HELP
-mode_examples:
-!text "A", 0 ; 0 Accumulator
-!text "", 0 ; 1 None
-!text "#$12", 0 ; 2 Immediate
-!text "($12,X)", 0 ; 3 IndirectX
-!text "($12),Y", 0 ; 4 IndirectY
-!text "$1234 (-128 to +127)", 0 ; 5 Relative
-!text "$12", 0 ; 6 ZeroPage
-!text "$12,X", 0 ; 7 ZeroPageX
-!text "$12,Y", 0 ; 8 ZeroPageY
-!text "$1234", 0 ; 9 Absolute
-!text "$1234,X", 0 ; 10 AbsoluteX
-!text "$1234,Y", 0 ; 11 AbsoluteY
-!text "($1234)", 0 ; 12 Indirect
+nmodes = 13
+
+mode_sorted:
+!byte 9, 10, 11, 0, 2, 12, 3, 4, 1, 5, 6, 7, 8
+
+!ifdef MINIMUM {
+mode_example_0: !text "Accumulator A", 0
+mode_example_1: !text "None ", 0
+mode_example_2: !text "Immediate #$12", 0
+mode_example_3: !text "IndirectX ($12,X)", 0
+mode_example_4: !text "IndirectY ($12),Y", 0
+mode_example_5: !text "Relative $1234 {-128 to +127}", 0
+mode_example_6: !text "ZeroPage $12", 0
+mode_example_7: !text "ZeroPageX $12,X", 0
+mode_example_8: !text "ZeroPageY $12,Y", 0
+mode_example_9: !text "Absolute $1234", 0
+mode_example_10: !text "AbsoluteX $1234,X", 0
+mode_example_11: !text "AbsoluteY $1234,Y", 0
+mode_example_12: !text "Indirect ($1234)", 0
+} else {
+mode_example_0: !text "ACCUMULATOR A", 0
+mode_example_1: !text "NONE ", 0
+mode_example_2: !text "IMMEDIATE #$12", 0
+mode_example_3: !text "INDIRECTX ($12,X)", 0
+mode_example_4: !text "INDIRECTY ($12),Y", 0
+mode_example_5: !text "RELATIVE $1234", 146, " [-128 TO +127]", 0
+mode_example_6: !text "ZEROPAGE $12", 0
+mode_example_7: !text "ZEROPAGEX $12,X", 0
+mode_example_8: !text "ZEROPAGEY $12,Y", 0
+mode_example_9: !text "ABSOLUTE $1234", 0
+mode_example_10: !text "ABSOLUTEX $1234,X", 0
+mode_example_11: !text "ABSOLUTEY $1234,Y", 0
+mode_example_12: !text "INDIRECT ($1234)", 0
 }
+
+mode_examples: ; table for easily displaying each mode_example
+!word mode_example_0
+!word mode_example_1
+!word mode_example_2
+!word mode_example_3
+!word mode_example_4
+!word mode_example_5
+!word mode_example_6
+!word mode_example_7
+!word mode_example_8
+!word mode_example_9
+!word mode_example_10
+!word mode_example_11
+!word mode_example_12
 
 ; opcode table of byte values (opcodes), instructions, and addressing modes
 nopcodes = 151
@@ -1634,9 +1754,10 @@ copyright
 !text 0
 
 firsthelp
-!text 13, "? (FOR SYNTAX)"
-!text 13, "? A (FOR 6502 INSTRUCTIONS)"
-!text 13, "? MODES (FOR INSTRUCTION MODES)"
+!text 13, "?       (SYNTAX)"
+!text 13, "? A     (LIST 6502 INSTRUCTIONS)"
+!text 13, "? ADC   (/ADC/ ADDRESSING MODES)"
+!text 13, "? MODE  (ADDRESSING MODES)"
 ;!text 13, "? KEYWORD FOR EXAMPLE(S)"
 !text 13, 0
 
@@ -1646,15 +1767,17 @@ generalhelp
 !text "1000        (DISPLAY MEMORY CONTENTS)",13
 !text "1000.100F   (DISPLAY RANGE CONTENTS)", 13
 !text "1000.       (SCREENFULL OF MEMORY)", 13
+!text 0
+generalhelp2
 !text ".           (NEXT SCREENFULL OF MEMORY)", 13
 !text "1000: 01 02 (MODIFY MEMORY)", 13
 !text "1000 R      (RUN PROGRAM - JMP)", 13
 !text "1000 A      (ASSEMBLE AT ADDRESS)", 13
-!text 0
-generalhelp2
 !text "1000 D      (DISASSEMBLE AT ADDRESS)", 13
 !text "D           (DISASSEMBLE MORE)", 13
 !text 0
+
+modes_keyword !text "MODE", 0
 
 !ifdef C64SCREEN {
 page_disassemble !text "D",157,157,157,157,157,0
@@ -1663,8 +1786,8 @@ page_displaymemory !text ".",157,157,157,157,157,0
 
 !ifdef MINIMUM {
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-; JUMP table for consistency
-* = $FE00
+; JUMP table for some stability
+* = $FFEE
 JUART_INIT: JMP UART_INIT
 JUART_OUT: JMP UART_OUT
 JUART_IN: JMP UART_IN
