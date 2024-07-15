@@ -528,12 +528,19 @@ inputhexnybble:
 strout:
     sta ptr3
     stx ptr3+1
+strout2:    
     ldy #0
 -   lda (ptr3),y
     beq +
     jsr charout
     iny
     bne -
++   tya
+    sec
+    adc ptr3
+    sta ptr3
+    bcc +
+    inc ptr3+1
 +   rts
 
 inputline:
@@ -765,6 +772,9 @@ executehelp:
 +   jsr chkhelpmodes
     bne +
     jmp displaymodes
++   jsr chkinstruction
+    bne +
+    jmp executehelpinstruction
 +   jmp reportnotimplemented
 
 displayhelp:
@@ -845,7 +855,7 @@ dispmode:
     cmp #nmodes
     bcs +
     sta mode
-    jsr dispmodename
+    jsr disp_modename_and_example
     jmp dispmodeinstructions
 +   rts
 
@@ -882,25 +892,78 @@ dispmodeinstructions:
     bne --
     jmp newline
 
-dispmodename:
+disp_modename_and_example:
     asl
     tax
-    lda mode_examples, x
+    lda modes, x
     pha
-    lda mode_examples+1, x
+    lda modes+1, x
     tax
 !ifdef C64SCREEN {
     lda #18
     jsr charout
 }    
     pla
-!ifdef C64SCREEN {    
     jsr strout
+    lda #' '
+    jsr charout
+    jsr strout2
+!ifdef C64SCREEN {    
     lda #146
-    jmp charout
-} else {
-    jmp strout
-}
+    jsr charout
+}   
+    rts
+
+disp_modename_instruction_example:
+    asl
+    tax
+    lda modes, x
+    pha
+    lda modes+1, x
+    tax
+    pla
+    jsr strout ; mode name
+    lda ptr3
+    pha
+    lda ptr3+1
+    pha
+    lda #':'
+    jsr charout
+    lda #' '
+    jsr charout
+    lda inidx
+    jsr dispinst ; instruction
+    lda #' '
+    jsr charout
+    pla
+    sta ptr3+1
+    pla
+    sta ptr3
+    jsr strout2 ; example
+    rts
+
+
+executehelpinstruction:
+    ldy #0
+-   sty opidx
+    lda instidx, y
+    cmp inidx
+    bne +
+    lda modeidx, y
+    sta mode
+    ldx opidx
+    lda opcodes, x
+    jsr disphexbyte
+    lda #' '
+    jsr charout
+    lda mode
+    jsr disp_modename_instruction_example
+    jsr newline
++   ldy opidx
+    iny
+    cpy #nopcodes
+    bcc -
+    rts
 
 executeassemble:
     pla ; remove low byte return address
@@ -1709,49 +1772,49 @@ mode_sorted:
 !byte 9, 10, 11, 0, 2, 12, 3, 4, 1, 5, 6, 7, 8
 
 !ifdef MINIMUM {
-mode_example_0: !text "Accumulator A", 0
-mode_example_1: !text "None ", 0
-mode_example_2: !text "Immediate #$12", 0
-mode_example_3: !text "IndirectX ($12,X)", 0
-mode_example_4: !text "IndirectY ($12),Y", 0
-mode_example_5: !text "Relative $1234 {-128 to +127}", 0
-mode_example_6: !text "ZeroPage $12", 0
-mode_example_7: !text "ZeroPageX $12,X", 0
-mode_example_8: !text "ZeroPageY $12,Y", 0
-mode_example_9: !text "Absolute $1234", 0
-mode_example_10: !text "AbsoluteX $1234,X", 0
-mode_example_11: !text "AbsoluteY $1234,Y", 0
-mode_example_12: !text "Indirect ($1234)", 0
+mode_0: !text "Accumulator", 0, "A", 0
+mode_1: !text "None", 0, "", 0
+mode_2: !text "Immediate", 0, "#$12", 0
+mode_3: !text "IndirectX", 0, "($12,X)", 0
+mode_4: !text "IndirectY", 0, "($12),Y", 0
+mode_5: !text "Relative", 0, "$1234 {-128 to +127}", 0
+mode_6: !text "ZeroPage", 0, "$12", 0
+mode_7: !text "ZeroPageX", 0, "$12,X", 0
+mode_8: !text "ZeroPageY", 0, "$12,Y", 0
+mode_9: !text "Absolute", 0, "$1234", 0
+mode_10: !text "AbsoluteX", 0, "$1234,X", 0
+mode_11: !text "AbsoluteY", 0, "$1234,Y", 0
+mode_12: !text "Indirect", 0, "($1234)", 0
 } else {
-mode_example_0: !text "ACCUMULATOR A", 0
-mode_example_1: !text "NONE ", 0
-mode_example_2: !text "IMMEDIATE #$12", 0
-mode_example_3: !text "INDIRECTX ($12,X)", 0
-mode_example_4: !text "INDIRECTY ($12),Y", 0
-mode_example_5: !text "RELATIVE $1234", 146, " [-128 TO +127]", 0
-mode_example_6: !text "ZEROPAGE $12", 0
-mode_example_7: !text "ZEROPAGEX $12,X", 0
-mode_example_8: !text "ZEROPAGEY $12,Y", 0
-mode_example_9: !text "ABSOLUTE $1234", 0
-mode_example_10: !text "ABSOLUTEX $1234,X", 0
-mode_example_11: !text "ABSOLUTEY $1234,Y", 0
-mode_example_12: !text "INDIRECT ($1234)", 0
+mode_0: !text "ACCUMULATOR", 0, "A", 0
+mode_1: !text "NONE", 0, "", 0
+mode_2: !text "IMMEDIATE", 0, "#$12", 0
+mode_3: !text "INDIRECTX", 0, "($12,X)", 0
+mode_4: !text "INDIRECTY", 0, "($12),Y", 0
+mode_5: !text "RELATIVE", 0, "$1234", 146, " [-128 TO +127]", 0
+mode_6: !text "ZEROPAGE", 0, "$12", 0
+mode_7: !text "ZEROPAGEX", 0, "$12,X", 0
+mode_8: !text "ZEROPAGEY", 0, "$12,Y", 0
+mode_9: !text "ABSOLUTE", 0, "$1234", 0
+mode_10: !text "ABSOLUTEX", 0, "$1234,X", 0
+mode_11: !text "ABSOLUTEY", 0, "$1234,Y", 0
+mode_12: !text "INDIRECT", 0, "($1234)", 0
 }
 
-mode_examples: ; table for easily displaying each mode_example
-!word mode_example_0
-!word mode_example_1
-!word mode_example_2
-!word mode_example_3
-!word mode_example_4
-!word mode_example_5
-!word mode_example_6
-!word mode_example_7
-!word mode_example_8
-!word mode_example_9
-!word mode_example_10
-!word mode_example_11
-!word mode_example_12
+modes: ; table for easily displaying each mode_example
+!word mode_0
+!word mode_1
+!word mode_2
+!word mode_3
+!word mode_4
+!word mode_5
+!word mode_6
+!word mode_7
+!word mode_8
+!word mode_9
+!word mode_10
+!word mode_11
+!word mode_12
 
 ; opcode table of byte values (opcodes), instructions, and addressing modes
 nopcodes = 151
