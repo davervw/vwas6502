@@ -843,25 +843,14 @@ displaymodes:
 
 dispmode:
     cmp #nmodes
-    bcc +
-    rts
-+   sta mode
-    asl
-    tax
-    lda mode_examples, x
-    pha
-    lda mode_examples+1, x
-    tax
+    bcs +
+    sta mode
+    jsr dispmodename
+    jmp dispmodeinstructions
++   rts
+
+dispmodeinstructions:
 !ifdef C64SCREEN {
-    lda #18
-    jsr charout
-}    
-    pla
-    jsr strout
-!ifdef C64SCREEN {    
-    lda #146
-    jsr charout
- 
     ; 3 IndirectX and 4 IndirectY are the same, so compact them together to fit on screen
     lda mode
     cmp #3
@@ -870,8 +859,13 @@ dispmode:
     jmp charout
 }
     ; display instructions with this mode
-+   ldx #0
++   ldy #0
+--  sty inidx
+    ldx #0
 -   stx tmp
+    lda inidx
+    cmp instidx, x
+    bne ++
     lda modeidx, x
     cmp mode
     bne ++
@@ -883,7 +877,30 @@ dispmode:
 ++  inx
     cpx #nopcodes
     bcc -
+    iny
+    cpy #ninst
+    bne --
     jmp newline
+
+dispmodename:
+    asl
+    tax
+    lda mode_examples, x
+    pha
+    lda mode_examples+1, x
+    tax
+!ifdef C64SCREEN {
+    lda #18
+    jsr charout
+}    
+    pla
+!ifdef C64SCREEN {    
+    jsr strout
+    lda #146
+    jmp charout
+} else {
+    jmp strout
+}
 
 executeassemble:
     pla ; remove low byte return address
