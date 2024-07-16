@@ -628,6 +628,9 @@ parseline:
     jsr chkcontinuedis
     bne +
     jsr executedisassemble ; note won't return
++   jsr chkcontinueasm
+    bne +
+    jsr continueassemble ; note won't return
 +   jsr chkdot
     bne +
     jmp executedot
@@ -976,6 +979,23 @@ executehelpinstruction:
     cpy #nopcodes
     bcc -
     rts
+
+continueassemble:
+!ifdef C64SCREEN {   
+    lda #20
+    jsr charout
+    jsr charout
+}
+    lda ptr1
+    ldx ptr1+1
+    jsr disphexword
+    lda #' '
+    jsr charout
+!ifdef C64SCREEN {   
+    jsr charout
+    jsr charout
+}
+    ; continue...
 
 executeassemble:
     pla ; remove low byte return address
@@ -1509,6 +1529,17 @@ executerun:
 chkcontinuedis:
     lda inputbuf,y
     cmp #'D'
+    bne +
+    lda inputbuf+1,y
+    cmp #13
+    bne +
+    iny
+    ldx #0 ; restore Z set
++   rts
+
+chkcontinueasm:
+    lda inputbuf,y
+    cmp #'A'
     bne +
     lda inputbuf+1,y
     cmp #13
