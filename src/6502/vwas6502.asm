@@ -498,9 +498,7 @@ inputhexword: ; C set if fails
     bne -- ; repeat nybbles
 
 +   lda count
-    cmp #4
-    beq - ; fail if none parsed
-+   clc ; any nybbles parsed (0..4 is fine)
+    cmp #4 ; set C if 4, otherwise clear
     rts
 
 inputhexbyte:
