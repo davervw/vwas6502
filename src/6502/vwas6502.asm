@@ -983,13 +983,11 @@ continueassemble:
     lda #20
     jsr charout
     jsr charout
-}
     lda ptr1
     ldx ptr1+1
     jsr disphexword
     lda #' '
     jsr charout
-!ifdef C64SCREEN {   
     jsr charout
     jsr charout
 }
