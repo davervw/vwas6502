@@ -1482,7 +1482,13 @@ find_inst_and_mode: ; INPUT: inidx & mode, OUTPUT: Z true: opidx & size, otherwi
     bcs +
     adc #3
     sta mode ; promote ZeroPage modes to Absolute modes
-    jmp find_inst_and_mode2 ; try again once
+    jsr find_inst_and_mode2 ; try again once
+    bne ++
+    lda tmp2
+    sta ptr1
+    lda #0
+    sta ptr1+1
+    rts ; Z true (EQ)
 +   ldx #1 ; Z false (NE)
 ++  rts
 
