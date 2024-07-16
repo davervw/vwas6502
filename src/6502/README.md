@@ -33,7 +33,7 @@ Monitor with mini-assembler and disassembler
 ## Help
 ``?`` show syntax of commands available  
 ``? A`` list 6502 instructions  
-``? ADC`` list opcodes for instruction for each valid addressing mode  
+``? ADC`` list each opcode for an instruction such as ADC with detail of its addressing mode  
 ``? MODE`` list 6502 addressing modes w/ instructions  
 
 ## Notes
