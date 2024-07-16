@@ -495,10 +495,8 @@ inputhexword: ; C set if fails
     bne - ; repeat bits
 
     dec count
-    bpl -- ; repeat nybbles
+    bne -- ; repeat nybbles
 
--   sec ; 5 is too many
-    rts
 +   lda count
     cmp #4
     beq - ; fail if none parsed
