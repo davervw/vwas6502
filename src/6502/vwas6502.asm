@@ -472,22 +472,37 @@ disphexnybble: ; .A 0..F
 +   jmp charout
 
 inputhexword: ; C set if fails
-    tya
-    tax ; save buffer pointer in x
-    jsr inputhexbyte
-    bcs ++ ; failed
-+   sta ptr1 ; assume one byte
     lda #0
-    sta ptr1+1 ; extend to 16 bits
-    jsr inputhexbyte
-    bcs + ; failed
-    ldx ptr1 ; two bytes so shift the bytes
-    stx ptr1+1
     sta ptr1
-+   clc
+    sta ptr1+1
+
+    lda #4 ; word is at most 4 nybbles
+    sta count
+--  jsr inputhexnybble
+    bcs +
+
+    ; shift nibble up
+    asl
+    asl
+    asl
+    asl
+
+    ldx #4 ; 4 bits rotated into word
+-   rol
+    rol ptr1
+    rol ptr1+1
+    dex
+    bne - ; repeat bits
+
+    dec count
+    bpl -- ; repeat nybbles
+
+-   sec ; 5 is too many
     rts
-++  txa
-    tay ; restore buffer pointer
++   lda count
+    cmp #4
+    beq - ; fail if none parsed
++   clc ; any nybbles parsed (0..4 is fine)
     rts
 
 inputhexbyte:
