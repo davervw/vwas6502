@@ -23,11 +23,18 @@ Monitor with mini-assembler and disassembler
 ``1000 R`` run program (JMP)
 
 ## Assemble
-``1000 A`` assemble at address
+``1000 A`` assemble at address  
+``A`` continue assembling at last address
 
 ## Disassemble
 ``1000 D`` disassemble screenfull  
 ``D`` disassemble next screenfull
+
+## Help
+``?`` show syntax of commands available  
+``? A`` list 6502 instructions  
+``? ADC`` list opcodes for instruction for each valid addressing mode  
+``? MODE`` list 6502 addressing modes w/ instructions  
 
 ## Notes
 
