@@ -1026,7 +1026,11 @@ executeassemble:
     ;jsr skipspaces
     jsr chkinstruction
     beq +
--   jmp error    
+-   lda ptr3
+    sta ptr1
+    lda ptr3+1
+    sta ptr1+1
+    jmp error
 +   jsr chkaddressing
     bne -
     jsr find_inst_and_mode
