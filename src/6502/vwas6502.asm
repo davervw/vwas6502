@@ -514,6 +514,7 @@ inputhexbyte:
     asl tmp
     asl tmp
     asl tmp
+    ora tmp ; necessary to assemble the two nybbles
 ++  rts
 
 inputhexnybble:
@@ -1643,7 +1644,7 @@ chkhexaddr1:
     inx ; Z false (NE)
 +   rts
 
-chkhexbyte
+chkhexbyte:
     tya
     pha ; save y
     jsr inputhexbyte
