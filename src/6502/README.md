@@ -47,6 +47,7 @@ Monitor with mini-assembler and disassembler
 
 * Requires [ACME](https://sourceforge.net/projects/acme-crossass/), [VICE](https://vice-emu.sourceforge.io/), and a shell (e.g. bash) to build and run (see build.sh)
 * Development works across Windows, Linux, and Mac
+* If using Visual Code (optional) the [ACME cross assembler (C64)](https://marketplace.visualstudio.com/items?itemName=TonyLandi.acmecrossassembler) extension can be helpful for 6502 ACME syntax highlighting and editing
 
 ## Download
 
