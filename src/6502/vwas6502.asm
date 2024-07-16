@@ -516,7 +516,6 @@ inputhexbyte:
     asl tmp
     asl tmp
     asl tmp
-    ora tmp
 ++  rts
 
 inputhexnybble:
