@@ -57,4 +57,5 @@ Monitor with mini-assembler and disassembler
 ## More Links
 
 * [Blog entry](https://techwithdave.davevw.com/2024/07/mini-assembler-with-disassembler.html) for mini-assembler and disassembler, [Twitter/X announcement](https://x.com/DaveRVW/status/1811912606825005540)
+* [Blog entry](https://techwithdave.davevw.com/2024/07/monitor-with-mini-assembler-6502.html) demonstrating the help info and 6502 references.
 * Archived link to [disassembler-only](archive/Disassembler.md) stage of project
