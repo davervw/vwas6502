@@ -145,13 +145,73 @@ len=$a4
 savepos=$a5
 tmp2=$a6
 flag=$a7
+banksel=$02
 }
 
 !ifdef MINIMUM {
 *=$f000
 } else {
-*=$c000
+*=$bc00 ; use some extra RAM under C64 BASIC ROM for more code
 }
+
+; ************************************************************************************
+; **** skip over next section, and see ** start ** below for beginning of program ****
+; ************************************************************************************
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+!ifndef MINIMUM {
+; C64 only
+; THIS CODE IS IN RAM UNDER BASIC ROM SO USE EXTRA CARE AS RUNNING IN THIS DIFFERENT MEMORY CONFIGURATION
+; REQUIRES ENTRY WHILE RAM IS ACCESSIBLE (SEE SETBANK) BUT ROM IS INACCESSIBLE
+
+chkextrac64:
+    jsr chkexit
+    bne +
+    jmp execute_exit
++   clc ; no error
+    ldx #1 ; Z false - not consumed
+    jmp rts_bank_norm
+
+rts_bank_norm:
+    php
+    lda #7
+    plp
+    jmp setbank ; also saves and restores processor status register
+
+chkexit:
+    lda inputbuf, y
+    cmp #'X'
+    bne +
+    iny
+    cpy len ; validate no extra characters
+    beq +
+    jmp extra_error
++   rts
+
+extra_error:
+    ; pop local return address
+    pla
+    pla
+    sec ; error
+    jmp rts_bank_norm
+
+execute_exit:
+    ; pop monitor return addresses, so only original caller is left
+    pla
+    pla
+    pla
+    pla
+    pla
+    pla
+    jmp rts_bank_norm
+
+*=$c000 ; switch to section of RAM always accessible for start...
+}
+
+;; end C64 part
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
 start:
     lda #<copyright
     ldx #>copyright
@@ -636,11 +696,24 @@ parseline:
 +   jsr chkhelp
     bne +
     jmp executehelp
-+   jsr chkhexaddr1
++
+!ifndef MINIMUM {
+    jsr bank6_chkextrac64 ; check syntax only available on C64
+    bcs + ; error if C set
+    beq ++ ; consumed if Z set, skip next test(s)
+}    
+    jsr chkhexaddr1
     bne error
-    jmp executeaddr1
+++  jmp executeaddr1
 error:
     jmp reporterr
+
+!ifndef MINIMUM {
+bank6_chkextrac64:
+    lda #6
+    jsr setbank
+    jmp chkextrac64 ; won't return, to reduce code in this bank
+}
 
 executeaddr1:
     cpy len
@@ -1912,6 +1985,19 @@ modes_keyword !text "MODE", 0
 !ifdef C64SCREEN {
 page_disassemble !text "D",157,157,157,157,157,0
 page_displaymemory !text ".",157,157,157,157,157,0
+}
+
+!ifndef MINIMUM { ; any C64
+setbank ; RAM under BASIC exposed, otherwise normal 
+        php
+        sta banksel
+        sei      ; disable interrupts temporarily
+        lda $01
+        and #$f8 ; mask out bits 0,1,2
+        ora banksel
+        sta $01  ; a000-ffff is now ram, no i/o
+        plp
+    	rts
 }
 
 !ifdef MINIMUM {
