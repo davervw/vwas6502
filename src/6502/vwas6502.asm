@@ -171,13 +171,7 @@ chkextrac64:
     jmp execute_exit
 +   clc ; no error
     ldx #1 ; Z false - not consumed
-    jmp rts_bank_norm
-
-rts_bank_norm:
-    php
-    lda #7
-    plp
-    jmp setbank ; also saves and restores processor status register
+    rts
 
 chkexit:
     lda inputbuf, y
@@ -194,7 +188,7 @@ extra_error:
     pla
     pla
     sec ; error
-    jmp rts_bank_norm
+    rts
 
 execute_exit:
     ; pop monitor return addresses, so only original caller is left
@@ -204,7 +198,62 @@ execute_exit:
     pla
     pla
     pla
-    jmp rts_bank_norm
+    lda #7
+    jmp setbank
+
+display_extra_help:
+    lda #<extra_help
+    ldx #>extra_help
+    jmp strout
+
+!ifdef C64SCREEN {
+display_page_disassemble:
+    lda ptr1
+    ldx ptr1+1
+    jsr disphexword
+    lda #<page_disassemble
+    ldx #>page_disassemble
+    jmp strout
+
+display_page_displaymemory:
+    jsr newline
+    lda ptr1
+    ldx ptr1+1
+    jsr disphexword
+    lda #<page_displaymemory
+    ldx #>page_displaymemory
+    jmp strout
+
+inputlinec64:
+    ldy #0
+-   jsr charin
+    sta inputbuf,y
+    iny
+    cmp #13
+    bne -
+    rts
+
+continueassemblec64:
+    lda #20
+    jsr charout
+    jsr charout
+    lda ptr1
+    ldx ptr1+1
+    jsr disphexword
+    lda #' '
+    jsr charout
+    jsr charout
+    jmp charout
+}
+
+extra_help:
+    !text "X           (EXIT MONITOR)", 13
+    !text 0
+
+!ifdef C64SCREEN {
+page_disassemble !text "D",157,157,157,157,157,0
+page_displaymemory !text ".",157,157,157,157,157,0
+}
 
 *=$c000 ; switch to section of RAM always accessible for start...
 }
@@ -223,21 +272,21 @@ start:
     jsr parseline
     jmp -
 
-test: ; all the addressing modes here for testing disassembly
-    nop
-    lda $1234
-    lda $1234,x
-    lda $1234,y
-    asl
-    lda #$12
-    lda ($12,x)
-    lda ($12),y
-    jmp ($1234)
--   bne -
-    lda $12
-    lda $12,x
-    ldx $12,y
-    !byte $FF ; unknown
+; test: ; all the addressing modes here for testing disassembly
+;     nop
+;     lda $1234
+;     lda $1234,x
+;     lda $1234,y
+;     asl
+;     lda #$12
+;     lda ($12,x)
+;     lda ($12),y
+;     jmp ($1234)
+; -   bne -
+;     lda $12
+;     lda $12,x
+;     ldx $12,y
+;     !byte $FF ; unknown
 
 disassemble:
     lda #23
@@ -257,12 +306,9 @@ disassemble:
 +   dec count
     bne -
 !ifdef C64SCREEN {
-    lda ptr1
-    ldx ptr1+1
-    jsr disphexword
-    lda #<page_disassemble
-    ldx #>page_disassemble
-    jmp strout
+    lda #<display_page_disassemble
+    ldx #>display_page_disassemble
+    jsr callbank6
 } else {    
     rts
 }
@@ -616,13 +662,9 @@ strout2:
 
 inputline:
 !ifdef C64SCREEN {
-    ldy #0
--   jsr charin
-    sta inputbuf,y
-    iny
-    cmp #13
-    bne -
-    rts
+    lda #<inputlinec64
+    ldx #>inputlinec64
+    jmp callbank6
 } else {
     ldy #0
 --  sty count
@@ -710,9 +752,9 @@ error:
 
 !ifndef MINIMUM {
 bank6_chkextrac64:
-    lda #6
-    jsr setbank
-    jmp chkextrac64 ; won't return, to reduce code in this bank
+    lda #<chkextrac64
+    ldx #>chkextrac64
+    jmp callbank6
 }
 
 executeaddr1:
@@ -809,13 +851,9 @@ executedisplay12:
     bit flag
     bpl ++
 !ifdef C64SCREEN {
-    jsr newline
-    lda ptr1
-    ldx ptr1+1
-    jsr disphexword
-    lda #<page_displaymemory
-    ldx #>page_displaymemory
-    jmp strout
+    lda #<display_page_displaymemory
+    ldx #>display_page_displaymemory
+    jmp callbank6
 }
 ++  jmp newline
 
@@ -871,6 +909,11 @@ displayhelp:
     lda #<generalhelp2
     ldx #>generalhelp2
     jsr strout
+!ifndef MINIMUM {
+    lda #<display_extra_help
+    ldx #>display_extra_help
+    jsr callbank6
+}
     lda #<firsthelp
     ldx #>firsthelp
     jmp strout
@@ -1054,16 +1097,9 @@ executehelpinstruction:
 
 continueassemble:
 !ifdef C64SCREEN {   
-    lda #20
-    jsr charout
-    jsr charout
-    lda ptr1
-    ldx ptr1+1
-    jsr disphexword
-    lda #' '
-    jsr charout
-    jsr charout
-    jsr charout
+    lda #<continueassemblec64
+    ldx #>continueassemblec64
+    jsr callbank6
 }
     ; continue...
 
@@ -1977,27 +2013,37 @@ generalhelp2
 !text "1000 R      (RUN PROGRAM - JMP)", 13
 !text "1000 A      (ASSEMBLE AT ADDRESS)", 13
 !text "1000 D      (DISASSEMBLE AT ADDRESS)", 13
+!text "A           (ASSEMBLE MORE)", 13
 !text "D           (DISASSEMBLE MORE)", 13
 !text 0
 
 modes_keyword !text "MODE", 0
 
-!ifdef C64SCREEN {
-page_disassemble !text "D",157,157,157,157,157,0
-page_displaymemory !text ".",157,157,157,157,157,0
-}
-
 !ifndef MINIMUM { ; any C64
-setbank ; RAM under BASIC exposed, otherwise normal 
-        php
-        sta banksel
-        sei      ; disable interrupts temporarily
-        lda $01
-        and #$f8 ; mask out bits 0,1,2
-        ora banksel
-        sta $01  ; a000-ffff is now ram, no i/o
-        plp
-    	rts
+callbank6:
+    sta calladdr+1
+    stx calladdr+2
+    lda #6 ; RAM under BASIC, otherwise similar to normal memory configuration
+    jsr setbank
+calladdr: jsr $0000
+    php ; save return status
+    lda #7 ; normal memory configuration
+    plp ; restore return status
+    ; fall through setbank
+setbank:
+    php ; save possible return status
+    sta banksel
+    lda $01
+    and #$f8 ; mask out bits 0,1,2
+    ora banksel
+    sta $01
+    plp ; restore possible return status
+    rts
+
+    !if * > $d000 {
+        !error "code/data overran $d000"
+    }
+
 }
 
 !ifdef MINIMUM {
