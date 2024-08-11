@@ -58,6 +58,11 @@
 ;; 1000 d (disassemble starting at address, for screenful)
 ;; d (continue disassembling from last address)
 ;; 1000 a (assemble starting at, interactive until empty line) 
+;; x (exit monitor -- C64 only)
+;; ? (commands help)
+;; ? a (list instructions available)
+;; ? adc (assembler addressing modes examples for a specific instruction, replace adc with desired instruction)
+;; ? mode (show addressing modes example syntax for 6502)
 ;; (FUTURE SYNTAX, not implemented)
 ;; 1000.2000 "text" ? (search for text in address range inclusive)
 ;; 1000.2000 A9 FF ? (search for byte sequence in address range inclusive)
@@ -67,10 +72,6 @@
 ;; .A 00 (change register, replace A with X, Y, SP, PC, SR, N, V, B, D, I, Z, C as appropriate)
 ;; 1000.2000 "filename" 08 save (save range of bytes from $1000 up to not including $2000, Commodore drive address is optional, can abbreviate to s)
 ;; 1000 "filename" 08 load (load absolute, address optional, drive address is optional, can abbreviate to l)
-;; ? (commands help)
-;; ? a (list instructions available)
-;; ? adc (assembler addressing modes examples for a specific instruction, replace adc with desired instruction)
-;; ? mode (show addressing modes example syntax for 6502)
 ;;
 ;; (INTERACTIVE ASSEMBLER)
 ;; 1000 _
