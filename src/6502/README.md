@@ -30,6 +30,10 @@ Monitor with mini-assembler and disassembler
 ``1000 D`` disassemble screenfull  
 ``D`` disassemble next screenfull
 
+## C64 only
+``X`` exit, e.g. to BASIC  
+``1000.2000 "FILENAME" 08 S`` save range of memory exclusive of ending address to filename and device number  
+
 ## Help
 ``?`` show syntax of commands available  
 ``? A`` list 6502 instructions  
@@ -40,7 +44,7 @@ Monitor with mini-assembler and disassembler
 
 * Original code!  Not a port, nothing borrowed except look and feel.
 * This monitor is borrowing the look and feel of [WozMon](https://github.com/davervw/wozmon_cbm) (of Apple 1 fame).  Commands are similar, but not exact behavior and syntax as this is brand new code, and a different command parser.
-* The succeded goal was to port this monitor for use with my minimal 6502 emulated environment [(Twitter/X announcement)](https://x.com/DaveRVW/status/1787386286552268934) delivered with the [c-simple-emu6502-cbm terminal version](https://github.com/davervw/c-simple-emu6502-cbm) and [(unified) graphical version](https://github.com/davervw/c-simple-emu6502-cbm/tree/unified).
+* The succeded goal was to port this monitor for use with my minimal 6502 emulated environment [(Twitter/X announcement)](https://x.com/DaveRVW/status/1787386286552268934) delivered with the [c-simple-emu6502-cbm terminal version](https://github.com/davervw/c-simple-emu6502-cbm) and [(unified) graphical version](https://github.com/davervw/c-simple-emu6502-cbm/tree/unified).  Note the unified branch has a take/restore snapshot feature in lieu of loading/saving.
 * With a tiny bit of work, this monitor could work on virtually any 6502 8-bit computer, or 6502 single board computer, that supports character input/output and a screen or terminal display
 
 ## Building

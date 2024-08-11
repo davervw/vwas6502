@@ -63,6 +63,7 @@
 ;; ? a (list instructions available)
 ;; ? adc (assembler addressing modes examples for a specific instruction, replace adc with desired instruction)
 ;; ? mode (show addressing modes example syntax for 6502)
+;; 1000.2000 "filename" 08 s (C64: save range of bytes from $1000 up to not including $2000, Commodore drive address is optional, defaults to 8)
 ;; (FUTURE SYNTAX, not implemented)
 ;; 1000.2000 "text" ? (search for text in address range inclusive)
 ;; 1000.2000 A9 FF ? (search for byte sequence in address range inclusive)
@@ -70,7 +71,6 @@
 ;; 1000.2000: 01 02 03 (fill bytes to inclusive address range)
 ;; .? (display registers, VICE format or custom? screen editor changeable?)
 ;; .A 00 (change register, replace A with X, Y, SP, PC, SR, N, V, B, D, I, Z, C as appropriate)
-;; 1000.2000 "filename" 08 save (save range of bytes from $1000 up to not including $2000, Commodore drive address is optional, can abbreviate to s)
 ;; 1000 "filename" 08 load (load absolute, address optional, drive address is optional, can abbreviate to l)
 ;;
 ;; (INTERACTIVE ASSEMBLER)
@@ -107,14 +107,20 @@ getkey=JUART_IN
 }
 
 !ifdef C64SCREEN {
+setlfs=$ffba
+setnam=$ffbd
 charin=$ffcf ; screen editor
 charout=$ffd2
+fsave =$ffd8
 getkey=$ffe4
 }
 
 !ifdef C64TERMINAL {
+setlfs=$ffba
+setnam=$ffbd
 charout=$ffd2
 getkey=$ffe4
+fsave =$ffd8
 }
 
 ; zeropage
@@ -147,6 +153,7 @@ savepos=$a5
 tmp2=$a6
 flag=$a7
 banksel=$02
+drive=$a8
 }
 
 !ifdef MINIMUM {
@@ -247,8 +254,81 @@ continueassemblec64:
     jmp charout
 }
 
+chkfilename:
+    jsr skipspaces
+    sty tmp
+    lda inputbuf, y
+    cmp #34 ; double quote
+    bne ++
+-   iny
+    lda inputbuf, y
+    cmp #13
+    bne +
+    ldy tmp
+    bne ++
++   cmp #34 ; double quote
+    bne -
+    tya ; index of ending double quotes
+    pha ; save
+    clc ; will subtract one more
+    sbc tmp ; subtract index of first quote, have filename length
+    ldx tmp
+    inx ; low address of filename
+    ldy #>inputbuf ; high address of filename
+    jsr setnam
+    pla
+    tay
+    iny ; advance past ending double quotes
+    lda #0 ; set Z true
+++  rts
+
+check_execute_save:
++   jsr chkfilename
+    beq +
+    jsr reporterr
+    ldx #1 ; set Z false
+    rts
++   jsr chkoptionaldrive
+    jsr chksave
+    bne +
+    jsr executesave
+    ldx #0 ; set Z true
++   rts
+
+chkoptionaldrive:
+    lda #8
+    sta drive
+    jsr skipspaces
+    jsr chkhexbyte
+    bne +
+    sta drive
+    jsr skipspaces
+    lda #0 ; set Z true
++   rts
+
+chksave:
+    jsr skipspaces
+    lda inputbuf, y
+    cmp #'S'
+    rts
+
+executesave:
+    jsr newline
+    lda #$c0 ; KERNAL control and error messages
+    sta $9d ; set messages to be displayed
+    lda #1
+    ldx drive
+    ldy #15
+    jsr setlfs
+    lda #ptr1
+    ldx ptr2
+    ldy ptr2+1
+    jsr fsave
+    jmp newline
+
 extra_help:
     !text "X           (EXIT MONITOR)", 13
+    !text "1000.2000 ", 34, "FILENAME", 34, " 08 S  (SAVE)"
     !text 0
 
 !ifdef C64SCREEN {
@@ -775,10 +855,16 @@ executeaddr1:
     jsr chkcolon
     bne +
     jmp executemodify
-+   jsr chkaddr1cmd ; rda, will not return here if cmd
-    jsr chkfilename
++   jsr chkaddr1cmd ; r/d/a, will not return here if cmd
+!ifdef MINIMUM {
+    jmp reportnotimplemented
+} else {
+    lda #<chkfilename
+    ldx #>chkfilename
+    jsr callbank6
     bne error
     jmp executeloadfilename
+}
 
 executepagedisplay:
     lda ptr1
@@ -808,7 +894,14 @@ executeaddr12:
     cpy len
     bne +
     jmp executedisplay12
+!ifndef MINIMUM {
++   lda #<check_execute_save
+    ldx #>check_execute_save
+    jsr callbank6
+    beq ++
+}
 +   jmp reportnotimplemented
+++  rts
 
 executedisplay1:
     lda ptr1
@@ -1691,11 +1784,16 @@ reporterr:
 
 skipspaces:
 -   lda inputbuf, y
+!ifndef MINIMUM {
+    ; skip SHIFT-SPACES too on Commodore
+    cmp #$A0
+    beq +
+}
     cmp #$20
-    bne +
-    iny
+    bne ++
++   iny
     bne -
-+   rts
+++  rts
 
 chkdot:
     lda inputbuf, y
@@ -1720,21 +1818,6 @@ chkcolon:
     iny
     lda #0 ; Z true (EQ)
 +   rts
-
-chkfilename:
-    sty tmp
-    lda inputbuf, y
-    cmp #34
-    bne ++
--   iny
-    lda inputbuf, y
-    cmp #13
-    bne +
-    ldy tmp
-    bne ++
-+   cmp #34
-    bne -
-++  rts
 
 chkhexbyteofsequence:
     jsr inputhexbyte
