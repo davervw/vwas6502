@@ -209,7 +209,7 @@
    207  bc24 68                     pla
    208  bc25 68                     pla
    209  bc26 a907                   lda #7
-   210  bc28 4caacf                 jmp setbank
+   210  bc28 4cabcf                 jmp setbank
    211                          
    212                          display_extra_help:
    213  bc2b a9fa                   lda #<extra_help
@@ -345,10 +345,10 @@
    343                          ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
    344                          
    345                          start:
-   346  c000 a95e                   lda #<copyright
+   346  c000 a95f                   lda #<copyright
    347  c002 a2cd                   ldx #>copyright
    348  c004 2062c2                 jsr strout
-   349  c007 a9bc                   lda #<firsthelp
+   349  c007 a9bd                   lda #<firsthelp
    350  c009 a2cd                   ldx #>firsthelp
    351  c00b 2062c2                 jsr strout
    352  c00e 207dc2             -   jsr inputline
@@ -391,7 +391,7 @@
    389                          !ifdef C64SCREEN {
    390  c038 a932                   lda #<display_page_disassemble
    391  c03a a2bc                   ldx #>display_page_disassemble
-   392  c03c 2098cf                 jsr callbank6
+   392  c03c 2099cf                 jsr callbank6
    393                          } else {    
    394                              rts
    395                          }
@@ -408,7 +408,7 @@
    406                          ; and properties updated in ZP globals size,inidx,opidx,mode
    407  c04a a097                   ldy #nopcodes
    408  c04c a296                   ldx #nopcodes-1
-   409  c04e dd99cb             -   cmp opcodes,x
+   409  c04e dd9acb             -   cmp opcodes,x
    410  c051 f00f                   beq +
    411  c053 ca                     dex
    412  c054 88                     dey
@@ -420,8 +420,8 @@
    418  c05e aa                     tax
    419  c05f a8                     tay
    420  c060 900a                   bcc ++
-   421  c062 bd30cc             +   lda instidx, x
-   422  c065 bcc7cc                 ldy modeidx, x
+   421  c062 bd31cc             +   lda instidx, x
+   422  c065 bcc8cc                 ldy modeidx, x
    423  c068 2073c0                 jsr getsize
    424  c06b 38                     sec
    425  c06c 8523               ++  sta inidx
@@ -747,7 +747,7 @@
    745                          !ifdef C64SCREEN {
    746  c27d a951                   lda #<inputlinec64
    747  c27f a2bc                   ldx #>inputlinec64
-   748  c281 4c98cf                 jmp callbank6
+   748  c281 4c99cf                 jmp callbank6
    749                          } else {
    750                              ldy #0
    751                          --  sty count
@@ -837,7 +837,7 @@
    835                          bank6_chkextrac64:
    836  c2c9 a900                   lda #<chkextrac64
    837  c2cb a2bc                   ldx #>chkextrac64
-   838  c2cd 4c98cf                 jmp callbank6
+   838  c2cd 4c99cf                 jmp callbank6
    839                          }
    840                          
    841                          executeaddr1:
@@ -863,7 +863,7 @@
    861                          } else {
    862  c2f9 a979                   lda #<chkfilename
    863  c2fb a2bc                   ldx #>chkfilename
-   864  c2fd 2098cf                 jsr callbank6
+   864  c2fd 2099cf                 jsr callbank6
    865  c300 d0c4                   bne error
    866  c302 4cadc3                 jmp executeloadfilename
    867                          }
@@ -899,7 +899,7 @@
    897                          !ifndef MINIMUM {
    898  c324 a9a8               +   lda #<check_execute_save
    899  c326 a2bc                   ldx #>check_execute_save
-   900  c328 2098cf                 jsr callbank6
+   900  c328 2099cf                 jsr callbank6
    901  c32b f003                   beq ++
    902                          }
    903  c32d 4c0fc9             +   jmp reportnotimplemented
@@ -949,7 +949,7 @@
    947                          !ifdef C64SCREEN {
    948  c37a a940                   lda #<display_page_displaymemory
    949  c37c a2bc                   ldx #>display_page_displaymemory
-   950  c37e 4c98cf                 jmp callbank6
+   950  c37e 4c99cf                 jmp callbank6
    951                          }
    952  c381 4cd4c9             ++  jmp newline
    953                          
@@ -999,18 +999,18 @@
    997  c3d5 4c0fc9             +   jmp reportnotimplemented
    998                          
    999                          displayhelp:
-  1000  c3d8 a93d                   lda #<generalhelp
+  1000  c3d8 a93e                   lda #<generalhelp
   1001  c3da a2ce                   ldx #>generalhelp
   1002  c3dc 2062c2                 jsr strout
-  1003  c3df a9ac                   lda #<generalhelp2
+  1003  c3df a9ad                   lda #<generalhelp2
   1004  c3e1 a2ce                   ldx #>generalhelp2
   1005  c3e3 2062c2                 jsr strout
   1006                          !ifndef MINIMUM {
   1007  c3e6 a92b                   lda #<display_extra_help
   1008  c3e8 a2bc                   ldx #>display_extra_help
-  1009  c3ea 2098cf                 jsr callbank6
+  1009  c3ea 2099cf                 jsr callbank6
   1010                          }
-  1011  c3ed a9bc                   lda #<firsthelp
+  1011  c3ed a9bd                   lda #<firsthelp
   1012  c3ef a2cd                   ldx #>firsthelp
   1013  c3f1 4c62c2                 jmp strout
   1014                          
@@ -1024,7 +1024,7 @@
   1022  c400 60                 +   rts
   1023                          
   1024                          chkhelpmodes:
-  1025  c401 a993                   lda #<modes_keyword
+  1025  c401 a994                   lda #<modes_keyword
   1026  c403 a2cf                   ldx #>modes_keyword
   1027                              ; fall through to chkkeyword
   1028                          
@@ -1100,14 +1100,14 @@
   1098  c46b a200                   ldx #0
   1099  c46d 86ff               -   stx tmp
   1100  c46f a523                   lda inidx
-  1101  c471 dd30cc                 cmp instidx, x
+  1101  c471 dd31cc                 cmp instidx, x
   1102  c474 d014                   bne ++
-  1103  c476 bdc7cc                 lda modeidx, x
+  1103  c476 bdc8cc                 lda modeidx, x
   1104  c479 c524                   cmp mode
   1105  c47b d00d                   bne ++
   1106  c47d a920                   lda #' '
   1107  c47f 20d2ff                 jsr charout
-  1108  c482 bd30cc                 lda instidx, x
+  1108  c482 bd31cc                 lda instidx, x
   1109  c485 208ac0                 jsr dispinst
   1110  c488 a6ff                   ldx tmp
   1111  c48a e8                 ++  inx
@@ -1121,9 +1121,9 @@
   1119                          disp_modename_and_example:
   1120  c497 0a                     asl
   1121  c498 aa                     tax
-  1122  c499 bd7fcb                 lda modes, x
+  1122  c499 bd80cb                 lda modes, x
   1123  c49c 48                     pha
-  1124  c49d bd80cb                 lda modes+1, x
+  1124  c49d bd81cb                 lda modes+1, x
   1125  c4a0 aa                     tax
   1126                          !ifdef C64SCREEN {
   1127  c4a1 a912                   lda #18
@@ -1143,9 +1143,9 @@
   1141                          disp_modename_instruction_example:
   1142  c4b8 0a                     asl
   1143  c4b9 aa                     tax
-  1144  c4ba bd7fcb                 lda modes, x
+  1144  c4ba bd80cb                 lda modes, x
   1145  c4bd 48                     pha
-  1146  c4be bd80cb                 lda modes+1, x
+  1146  c4be bd81cb                 lda modes+1, x
   1147  c4c1 aa                     tax
   1148  c4c2 68                     pla
   1149  c4c3 2062c2                 jsr strout ; mode name
@@ -1172,13 +1172,13 @@
   1170                          executehelpinstruction:
   1171  c4ea a000                   ldy #0
   1172  c4ec 8422               -   sty opidx
-  1173  c4ee b930cc                 lda instidx, y
+  1173  c4ee b931cc                 lda instidx, y
   1174  c4f1 c523                   cmp inidx
   1175  c4f3 d01a                   bne +
-  1176  c4f5 b9c7cc                 lda modeidx, y
+  1176  c4f5 b9c8cc                 lda modeidx, y
   1177  c4f8 8524                   sta mode
   1178  c4fa a622                   ldx opidx
-  1179  c4fc bd99cb                 lda opcodes, x
+  1179  c4fc bd9acb                 lda opcodes, x
   1180  c4ff 20ecc1                 jsr disphexbyte
   1181  c502 a920                   lda #' '
   1182  c504 20d2ff                 jsr charout
@@ -1195,7 +1195,7 @@
   1193                          !ifdef C64SCREEN {   
   1194  c517 a95f                   lda #<continueassemblec64
   1195  c519 a2bc                   ldx #>continueassemblec64
-  1196  c51b 2098cf                 jsr callbank6
+  1196  c51b 2099cf                 jsr callbank6
   1197                          }
   1198                              ; continue...
   1199                          
@@ -1266,7 +1266,7 @@
   1264                          
   1265                          store_assembly:
   1266  c582 a622                   ldx opidx
-  1267  c584 bd99cb                 lda opcodes, x
+  1267  c584 bd9acb                 lda opcodes, x
   1268  c587 a000                   ldy #0
   1269  c589 9126                   sta (ptr3), y
   1270  c58b c8                     iny
@@ -1704,8 +1704,8 @@
   1702                          
   1703                          find_inst_and_mode2: ; INPUT: inidx & mode, OUTPUT: Z true: opidx & size, otherwise false
   1704  c8aa a296                   ldx #nopcodes-1
-  1705  c8ac bd30cc             -   lda instidx, x
-  1706  c8af bcc7cc                 ldy modeidx, x
+  1705  c8ac bd31cc             -   lda instidx, x
+  1706  c8af bcc8cc                 ldy modeidx, x
   1707  c8b2 c523                   cmp inidx
   1708  c8b4 d00c                   bne +
   1709  c8b6 c424                   cpy mode
@@ -1767,7 +1767,7 @@
   1765  c90c 4c17c0                 jmp disassemble
   1766                          
   1767                          reportnotimplemented:
-  1768  c90f a92c                   lda #<notimplemented
+  1768  c90f a92d                   lda #<notimplemented
   1769  c911 a2ce                   ldx #>notimplemented
   1770  c913 4c62c2                 jmp strout
   1771                          
@@ -2018,7 +2018,7 @@
   2016                          
   2017                          !ifdef MINIMUM {
   2018                          mode_0: !text "Accumulator", 0, "A", 0
-  2019                          mode_1: !text "None", 0, "", 0
+  2019                          mode_1: !text "None", 0, 8, 0
   2020                          mode_2: !text "Immediate", 0, "#$12", 0
   2021                          mode_3: !text "IndirectX", 0, "($12,X)", 0
   2022                          mode_4: !text "IndirectY", 0, "($12),Y", 0
@@ -2032,99 +2032,99 @@
   2030                          mode_12: !text "Indirect", 0, "($1234)", 0
   2031                          } else {
   2032  caa8 414343554d554c41...mode_0: !text "ACCUMULATOR", 0, "A", 0
-  2033  cab6 4e4f4e450000       mode_1: !text "NONE", 0, "", 0
-  2034  cabc 494d4d4544494154...mode_2: !text "IMMEDIATE", 0, "#$12", 0
-  2035  cacb 494e444952454354...mode_3: !text "INDIRECTX", 0, "($12,X)", 0
-  2036  cadd 494e444952454354...mode_4: !text "INDIRECTY", 0, "($12),Y", 0
-  2037  caef 52454c4154495645...mode_5: !text "RELATIVE", 0, "$1234", 146, " [-128 TO +127]", 0
-  2038  cb0e 5a45524f50414745...mode_6: !text "ZEROPAGE", 0, "$12", 0
-  2039  cb1b 5a45524f50414745...mode_7: !text "ZEROPAGEX", 0, "$12,X", 0
-  2040  cb2b 5a45524f50414745...mode_8: !text "ZEROPAGEY", 0, "$12,Y", 0
-  2041  cb3b 4142534f4c555445...mode_9: !text "ABSOLUTE", 0, "$1234", 0
-  2042  cb4a 4142534f4c555445...mode_10: !text "ABSOLUTEX", 0, "$1234,X", 0
-  2043  cb5c 4142534f4c555445...mode_11: !text "ABSOLUTEY", 0, "$1234,Y", 0
-  2044  cb6e 494e444952454354...mode_12: !text "INDIRECT", 0, "($1234)", 0
+  2033  cab6 4e4f4e45001400     mode_1: !text "NONE", 0, 20, 0
+  2034  cabd 494d4d4544494154...mode_2: !text "IMMEDIATE", 0, "#$12", 0
+  2035  cacc 494e444952454354...mode_3: !text "INDIRECTX", 0, "($12,X)", 0
+  2036  cade 494e444952454354...mode_4: !text "INDIRECTY", 0, "($12),Y", 0
+  2037  caf0 52454c4154495645...mode_5: !text "RELATIVE", 0, "$1234", 146, " [-128 TO +127]", 0
+  2038  cb0f 5a45524f50414745...mode_6: !text "ZEROPAGE", 0, "$12", 0
+  2039  cb1c 5a45524f50414745...mode_7: !text "ZEROPAGEX", 0, "$12,X", 0
+  2040  cb2c 5a45524f50414745...mode_8: !text "ZEROPAGEY", 0, "$12,Y", 0
+  2041  cb3c 4142534f4c555445...mode_9: !text "ABSOLUTE", 0, "$1234", 0
+  2042  cb4b 4142534f4c555445...mode_10: !text "ABSOLUTEX", 0, "$1234,X", 0
+  2043  cb5d 4142534f4c555445...mode_11: !text "ABSOLUTEY", 0, "$1234,Y", 0
+  2044  cb6f 494e444952454354...mode_12: !text "INDIRECT", 0, "($1234)", 0
   2045                          }
   2046                          
   2047                          modes: ; table for easily displaying each mode_example
-  2048  cb7f a8ca               !word mode_0
-  2049  cb81 b6ca               !word mode_1
-  2050  cb83 bcca               !word mode_2
-  2051  cb85 cbca               !word mode_3
-  2052  cb87 ddca               !word mode_4
-  2053  cb89 efca               !word mode_5
-  2054  cb8b 0ecb               !word mode_6
-  2055  cb8d 1bcb               !word mode_7
-  2056  cb8f 2bcb               !word mode_8
-  2057  cb91 3bcb               !word mode_9
-  2058  cb93 4acb               !word mode_10
-  2059  cb95 5ccb               !word mode_11
-  2060  cb97 6ecb               !word mode_12
+  2048  cb80 a8ca               !word mode_0
+  2049  cb82 b6ca               !word mode_1
+  2050  cb84 bdca               !word mode_2
+  2051  cb86 ccca               !word mode_3
+  2052  cb88 deca               !word mode_4
+  2053  cb8a f0ca               !word mode_5
+  2054  cb8c 0fcb               !word mode_6
+  2055  cb8e 1ccb               !word mode_7
+  2056  cb90 2ccb               !word mode_8
+  2057  cb92 3ccb               !word mode_9
+  2058  cb94 4bcb               !word mode_10
+  2059  cb96 5dcb               !word mode_11
+  2060  cb98 6fcb               !word mode_12
   2061                          
   2062                          ; opcode table of byte values (opcodes), instructions, and addressing modes
   2063                          nopcodes = 151
-  2064  cb99 0001050608090a0d...opcodes !byte $00,$01,$05,$06,$08,$09,$0A,$0D,$0E,$10,$11,$15,$16,$18,$19,$1D,$1E,$20,$21,$24,$25,$26,$28,$29,$2A,$2C,$2D,$2E,$30,$31,$35,$36,$38,$39,$3D,$3E,$40,$41,$45,$46,$48,$49,$4A,$4C,$4D,$4E,$50,$51,$55,$56,$58,$59,$5D,$5E,$60,$61,$65,$66,$68,$69,$6A,$6C,$6D,$6E,$70,$71,$75,$76,$78,$79,$7D,$7E,$81,$84,$85,$86,$88,$8A,$8C,$8D,$8E,$90,$91,$94,$95,$96,$98,$99,$9A,$9D,$A0,$A1,$A2,$A4,$A5,$A6,$A8,$A9,$AA,$AC,$AD,$AE,$B0,$B1,$B4,$B5,$B6,$B8,$B9,$BA,$BC,$BD,$BE,$C0,$C1,$C4,$C5,$C6,$C8,$C9,$CA,$CC,$CD,$CE,$D0,$D1,$D5,$D6,$D8,$D9,$DD,$DE,$E0,$E1,$E4,$E5,$E6,$E8,$E9,$EA,$EC,$ED,$EE,$F0,$F1,$F5,$F6,$F8,$F9,$FD,$FE
-  2065  cc30 0a22220224220222...instidx !byte $0A,$22,$22,$02,$24,$22,$02,$22,$02,$09,$22,$22,$02,$0D,$22,$22,$02,$1C,$01,$06,$01,$27,$26,$01,$27,$06,$01,$27,$07,$01,$01,$27,$2C,$01,$01,$27,$29,$17,$17,$20,$23,$17,$20,$1B,$17,$20,$0B,$17,$17,$20,$0F,$17,$17,$20,$2A,$00,$00,$28,$25,$00,$28,$1B,$00,$28,$0C,$00,$00,$28,$2E,$00,$00,$28,$2F,$31,$2F,$30,$16,$35,$31,$2F,$30,$03,$2F,$31,$2F,$30,$37,$2F,$36,$2F,$1F,$1D,$1E,$1F,$1D,$1E,$33,$1D,$32,$1F,$1D,$1E,$04,$1D,$1F,$1D,$1E,$10,$1D,$34,$1F,$1D,$1E,$13,$11,$13,$11,$14,$1A,$11,$15,$13,$11,$14,$08,$11,$11,$14,$0E,$11,$11,$14,$12,$2B,$12,$2B,$18,$19,$2B,$21,$12,$2B,$18,$05,$2B,$2B,$18,$2D,$2B,$2B,$18
-  2066  ccc7 0103060601020009...modeidx !byte $01,$03,$06,$06,$01,$02,$00,$09,$09,$05,$04,$07,$07,$01,$0B,$0A,$0A,$09,$03,$06,$06,$06,$01,$02,$00,$09,$09,$09,$05,$04,$07,$07,$01,$0B,$0A,$0A,$01,$03,$06,$06,$01,$02,$00,$09,$09,$09,$05,$04,$07,$07,$01,$0B,$0A,$0A,$01,$03,$06,$06,$01,$02,$00,$0C,$09,$09,$05,$04,$07,$07,$01,$0B,$0A,$0A,$03,$06,$06,$06,$01,$01,$09,$09,$09,$05,$04,$07,$07,$08,$01,$0B,$01,$0A,$02,$03,$02,$06,$06,$06,$01,$02,$01,$09,$09,$09,$05,$04,$07,$07,$08,$01,$0B,$01,$0A,$0A,$0B,$02,$03,$06,$06,$06,$01,$02,$01,$09,$09,$09,$05,$04,$07,$07,$01,$0B,$0A,$0A,$02,$03,$06,$06,$06,$01,$02,$01,$09,$09,$09,$05,$04,$07,$07,$01,$0B,$0A,$0A
+  2064  cb9a 0001050608090a0d...opcodes !byte $00,$01,$05,$06,$08,$09,$0A,$0D,$0E,$10,$11,$15,$16,$18,$19,$1D,$1E,$20,$21,$24,$25,$26,$28,$29,$2A,$2C,$2D,$2E,$30,$31,$35,$36,$38,$39,$3D,$3E,$40,$41,$45,$46,$48,$49,$4A,$4C,$4D,$4E,$50,$51,$55,$56,$58,$59,$5D,$5E,$60,$61,$65,$66,$68,$69,$6A,$6C,$6D,$6E,$70,$71,$75,$76,$78,$79,$7D,$7E,$81,$84,$85,$86,$88,$8A,$8C,$8D,$8E,$90,$91,$94,$95,$96,$98,$99,$9A,$9D,$A0,$A1,$A2,$A4,$A5,$A6,$A8,$A9,$AA,$AC,$AD,$AE,$B0,$B1,$B4,$B5,$B6,$B8,$B9,$BA,$BC,$BD,$BE,$C0,$C1,$C4,$C5,$C6,$C8,$C9,$CA,$CC,$CD,$CE,$D0,$D1,$D5,$D6,$D8,$D9,$DD,$DE,$E0,$E1,$E4,$E5,$E6,$E8,$E9,$EA,$EC,$ED,$EE,$F0,$F1,$F5,$F6,$F8,$F9,$FD,$FE
+  2065  cc31 0a22220224220222...instidx !byte $0A,$22,$22,$02,$24,$22,$02,$22,$02,$09,$22,$22,$02,$0D,$22,$22,$02,$1C,$01,$06,$01,$27,$26,$01,$27,$06,$01,$27,$07,$01,$01,$27,$2C,$01,$01,$27,$29,$17,$17,$20,$23,$17,$20,$1B,$17,$20,$0B,$17,$17,$20,$0F,$17,$17,$20,$2A,$00,$00,$28,$25,$00,$28,$1B,$00,$28,$0C,$00,$00,$28,$2E,$00,$00,$28,$2F,$31,$2F,$30,$16,$35,$31,$2F,$30,$03,$2F,$31,$2F,$30,$37,$2F,$36,$2F,$1F,$1D,$1E,$1F,$1D,$1E,$33,$1D,$32,$1F,$1D,$1E,$04,$1D,$1F,$1D,$1E,$10,$1D,$34,$1F,$1D,$1E,$13,$11,$13,$11,$14,$1A,$11,$15,$13,$11,$14,$08,$11,$11,$14,$0E,$11,$11,$14,$12,$2B,$12,$2B,$18,$19,$2B,$21,$12,$2B,$18,$05,$2B,$2B,$18,$2D,$2B,$2B,$18
+  2066  ccc8 0103060601020009...modeidx !byte $01,$03,$06,$06,$01,$02,$00,$09,$09,$05,$04,$07,$07,$01,$0B,$0A,$0A,$09,$03,$06,$06,$06,$01,$02,$00,$09,$09,$09,$05,$04,$07,$07,$01,$0B,$0A,$0A,$01,$03,$06,$06,$01,$02,$00,$09,$09,$09,$05,$04,$07,$07,$01,$0B,$0A,$0A,$01,$03,$06,$06,$01,$02,$00,$0C,$09,$09,$05,$04,$07,$07,$01,$0B,$0A,$0A,$03,$06,$06,$06,$01,$01,$09,$09,$09,$05,$04,$07,$07,$08,$01,$0B,$01,$0A,$02,$03,$02,$06,$06,$06,$01,$02,$01,$09,$09,$09,$05,$04,$07,$07,$08,$01,$0B,$01,$0A,$0A,$0B,$02,$03,$06,$06,$06,$01,$02,$01,$09,$09,$09,$05,$04,$07,$07,$01,$0B,$0A,$0A,$02,$03,$06,$06,$06,$01,$02,$01,$09,$09,$09,$05,$04,$07,$07,$01,$0B,$0A,$0A
   2067                          
   2068                          copyright 
   2069                          ;                  1         2         3         4
   2070                          ;         1234567890123456789012345678901234567890
-  2071  cd5e 0d36353032204d4f...!text 13,"6502 MONITOR AND MINI-ASSEMBLER"
+  2071  cd5f 0d36353032204d4f...!text 13,"6502 MONITOR AND MINI-ASSEMBLER"
   2072                          !ifdef C64TERMINAL {
   2073                              !text 13, "(TERMINAL VERSION)"
   2074                          }
-  2075  cd7e 0d56574153363530...!text 13,"VWAS6502 (C) 2024 DAVID R. VAN WAGNER"
-  2076  cda4 0d4d4954204c4943...!text 13, "MIT LICENSE DAVEVW.COM"
-  2077  cdbb 00                 !text 0
+  2075  cd7f 0d56574153363530...!text 13,"VWAS6502 (C) 2024 DAVID R. VAN WAGNER"
+  2076  cda5 0d4d4954204c4943...!text 13, "MIT LICENSE DAVEVW.COM"
+  2077  cdbc 00                 !text 0
   2078                          
   2079                          firsthelp
-  2080  cdbc 0d3f202020202020...!text 13, "?       (SYNTAX)"
-  2081  cdcd 0d3f204120202020...!text 13, "? A     (LIST 6502 INSTRUCTIONS)"
-  2082  cdee 0d3f204144432020...!text 13, "? ADC   (/ADC/ ADDRESSING MODES)"
-  2083  ce0f 0d3f204d4f444520...!text 13, "? MODE  (ADDRESSING MODES)"
+  2080  cdbd 0d3f202020202020...!text 13, "?       (SYNTAX)"
+  2081  cdce 0d3f204120202020...!text 13, "? A     (LIST 6502 INSTRUCTIONS)"
+  2082  cdef 0d3f204144432020...!text 13, "? ADC   (/ADC/ ADDRESSING MODES)"
+  2083  ce10 0d3f204d4f444520...!text 13, "? MODE  (ADDRESSING MODES)"
   2084                          ;!text 13, "? KEYWORD FOR EXAMPLE(S)"
-  2085  ce2a 0d00               !text 13, 0
+  2085  ce2b 0d00               !text 13, 0
   2086                          
-  2087  ce2c 4e4f5420494d504c...notimplemented !text "NOT IMPLEMENTED",13,0
+  2087  ce2d 4e4f5420494d504c...notimplemented !text "NOT IMPLEMENTED",13,0
   2088                          
   2089                          generalhelp
-  2090  ce3d 3130303020202020...!text "1000        (DISPLAY MEMORY CONTENTS)",13
-  2091  ce63 313030302e313030...!text "1000.100F   (DISPLAY RANGE CONTENTS)", 13
-  2092  ce88 313030302e202020...!text "1000.       (SCREENFULL OF MEMORY)", 13
-  2093  ceab 00                 !text 0
+  2090  ce3e 3130303020202020...!text "1000        (DISPLAY MEMORY CONTENTS)",13
+  2091  ce64 313030302e313030...!text "1000.100F   (DISPLAY RANGE CONTENTS)", 13
+  2092  ce89 313030302e202020...!text "1000.       (SCREENFULL OF MEMORY)", 13
+  2093  ceac 00                 !text 0
   2094                          generalhelp2
-  2095  ceac 2e20202020202020...!text ".           (NEXT SCREENFULL OF MEMORY)", 13
-  2096  ced4 313030303a203031...!text "1000: 01 02 (MODIFY MEMORY)", 13
-  2097  cef0 3130303020522020...!text "1000 R      (RUN PROGRAM - JMP)", 13
-  2098  cf10 3130303020412020...!text "1000 A      (ASSEMBLE AT ADDRESS)", 13
-  2099  cf32 3130303020442020...!text "1000 D      (DISASSEMBLE AT ADDRESS)", 13
-  2100  cf57 4120202020202020...!text "A           (ASSEMBLE MORE)", 13
-  2101  cf73 4420202020202020...!text "D           (DISASSEMBLE MORE)", 13
-  2102  cf92 00                 !text 0
+  2095  cead 2e20202020202020...!text ".           (NEXT SCREENFULL OF MEMORY)", 13
+  2096  ced5 313030303a203031...!text "1000: 01 02 (MODIFY MEMORY)", 13
+  2097  cef1 3130303020522020...!text "1000 R      (RUN PROGRAM - JMP)", 13
+  2098  cf11 3130303020412020...!text "1000 A      (ASSEMBLE AT ADDRESS)", 13
+  2099  cf33 3130303020442020...!text "1000 D      (DISASSEMBLE AT ADDRESS)", 13
+  2100  cf58 4120202020202020...!text "A           (ASSEMBLE MORE)", 13
+  2101  cf74 4420202020202020...!text "D           (DISASSEMBLE MORE)", 13
+  2102  cf93 00                 !text 0
   2103                          
-  2104  cf93 4d4f444500         modes_keyword !text "MODE", 0
+  2104  cf94 4d4f444500         modes_keyword !text "MODE", 0
   2105                          
   2106                          !ifndef MINIMUM { ; any C64
   2107                          callbank6:
-  2108  cf98 8da4cf                 sta calladdr+1
-  2109  cf9b 8ea5cf                 stx calladdr+2
-  2110  cf9e a906                   lda #6 ; RAM under BASIC, otherwise similar to normal memory configuration
-  2111  cfa0 20aacf                 jsr setbank
-  2112  cfa3 200000             calladdr: jsr $0000
-  2113  cfa6 08                     php ; save return status
-  2114  cfa7 a907                   lda #7 ; normal memory configuration
-  2115  cfa9 28                     plp ; restore return status
+  2108  cf99 8da5cf                 sta calladdr+1
+  2109  cf9c 8ea6cf                 stx calladdr+2
+  2110  cf9f a906                   lda #6 ; RAM under BASIC, otherwise similar to normal memory configuration
+  2111  cfa1 20abcf                 jsr setbank
+  2112  cfa4 200000             calladdr: jsr $0000
+  2113  cfa7 08                     php ; save return status
+  2114  cfa8 a907                   lda #7 ; normal memory configuration
+  2115  cfaa 28                     plp ; restore return status
   2116                              ; fall through setbank
   2117                          setbank:
-  2118  cfaa 08                     php ; save possible return status
-  2119  cfab 8502                   sta banksel
-  2120  cfad a501                   lda $01
-  2121  cfaf 29f8                   and #$f8 ; mask out bits 0,1,2
-  2122  cfb1 0502                   ora banksel
-  2123  cfb3 8501                   sta $01
-  2124  cfb5 28                     plp ; restore possible return status
-  2125  cfb6 60                     rts
+  2118  cfab 08                     php ; save possible return status
+  2119  cfac 8502                   sta banksel
+  2120  cfae a501                   lda $01
+  2121  cfb0 29f8                   and #$f8 ; mask out bits 0,1,2
+  2122  cfb2 0502                   ora banksel
+  2123  cfb4 8501                   sta $01
+  2124  cfb6 28                     plp ; restore possible return status
+  2125  cfb7 60                     rts
   2126                          
   2127                              !if * > $d000 {
   2128                                  !error "code/data overran $d000"

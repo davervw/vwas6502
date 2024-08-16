@@ -2016,7 +2016,7 @@ mode_sorted:
 
 !ifdef MINIMUM {
 mode_0: !text "Accumulator", 0, "A", 0
-mode_1: !text "None", 0, "", 0
+mode_1: !text "None", 0, 8, 0
 mode_2: !text "Immediate", 0, "#$12", 0
 mode_3: !text "IndirectX", 0, "($12,X)", 0
 mode_4: !text "IndirectY", 0, "($12),Y", 0
@@ -2030,7 +2030,7 @@ mode_11: !text "AbsoluteY", 0, "$1234,Y", 0
 mode_12: !text "Indirect", 0, "($1234)", 0
 } else {
 mode_0: !text "ACCUMULATOR", 0, "A", 0
-mode_1: !text "NONE", 0, "", 0
+mode_1: !text "NONE", 0, 20, 0
 mode_2: !text "IMMEDIATE", 0, "#$12", 0
 mode_3: !text "INDIRECTX", 0, "($12,X)", 0
 mode_4: !text "INDIRECTY", 0, "($12),Y", 0
