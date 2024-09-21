@@ -160,7 +160,7 @@
    158                          
    159                          !ifdef MINIMUM {
    160                          *=$f000
-   161                          } else {
+   161                          } else { // any C64
    162                          *=$bc00 ; use some extra RAM under C64 BASIC ROM for more code
    163                          }
    164                          
@@ -209,7 +209,7 @@
    207  bc24 68                     pla
    208  bc25 68                     pla
    209  bc26 a907                   lda #7
-   210  bc28 4cabcf                 jmp setbank
+   210  bc28 4cb1cf                 jmp setbank
    211                          
    212                          display_extra_help:
    213  bc2b a9fa                   lda #<extra_help
@@ -391,7 +391,7 @@
    389                          !ifdef C64SCREEN {
    390  c038 a932                   lda #<display_page_disassemble
    391  c03a a2bc                   ldx #>display_page_disassemble
-   392  c03c 2099cf                 jsr callbank6
+   392  c03c 4c99cf                 jmp callbank6
    393                          } else {    
    394                              rts
    395                          }
@@ -896,7 +896,7 @@
    894  c31d c4a4                   cpy len
    895  c31f d003                   bne +
    896  c321 4c39c3                 jmp executedisplay12
-   897                          !ifndef MINIMUM {
+   897                          !ifndef MINIMUM { // any C64
    898  c324 a9a8               +   lda #<check_execute_save
    899  c326 a2bc                   ldx #>check_execute_save
    900  c328 2099cf                 jsr callbank6
@@ -1005,7 +1005,7 @@
   1003  c3df a9ad                   lda #<generalhelp2
   1004  c3e1 a2ce                   ldx #>generalhelp2
   1005  c3e3 2062c2                 jsr strout
-  1006                          !ifndef MINIMUM {
+  1006                          !ifndef MINIMUM { // any C64
   1007  c3e6 a92b                   lda #<display_extra_help
   1008  c3e8 a2bc                   ldx #>display_extra_help
   1009  c3ea 2099cf                 jsr callbank6
@@ -2110,43 +2110,45 @@
   2108  cf99 8da5cf                 sta calladdr+1
   2109  cf9c 8ea6cf                 stx calladdr+2
   2110  cf9f a906                   lda #6 ; RAM under BASIC, otherwise similar to normal memory configuration
-  2111  cfa1 20abcf                 jsr setbank
+  2111  cfa1 20b1cf                 jsr setbank
   2112  cfa4 200000             calladdr: jsr $0000
   2113  cfa7 08                     php ; save return status
-  2114  cfa8 a907                   lda #7 ; normal memory configuration
-  2115  cfaa 28                     plp ; restore return status
-  2116                              ; fall through setbank
-  2117                          setbank:
-  2118  cfab 08                     php ; save possible return status
-  2119  cfac 8502                   sta banksel
-  2120  cfae a501                   lda $01
-  2121  cfb0 29f8                   and #$f8 ; mask out bits 0,1,2
-  2122  cfb2 0502                   ora banksel
-  2123  cfb4 8501                   sta $01
-  2124  cfb6 28                     plp ; restore possible return status
-  2125  cfb7 60                     rts
-  2126                          
-  2127                              !if * > $d000 {
-  2128                                  !error "code/data overran $d000"
-  2129                              }
-  2130                          
-  2131                          }
+  2114  cfa8 48                     pha ; save .A
+  2115  cfa9 a907                   lda #7 ; normal memory configuration
+  2116  cfab 20b1cf                 jsr setbank
+  2117  cfae 68                     pla ; restore .A
+  2118  cfaf 28                     plp ; restore return status
+  2119  cfb0 60                     rts
+  2120                          
+  2121                          setbank:
+  2122  cfb1 8502                   sta banksel
+  2123  cfb3 a501                   lda $01
+  2124  cfb5 29f8                   and #$f8 ; mask out bits 0,1,2
+  2125  cfb7 0502                   ora banksel
+  2126  cfb9 8501                   sta $01
+  2127  cfbb 60                     rts
+  2128                          
+  2129                              !if * > $d000 {
+  2130                                  !error "code/data overran $d000"
+  2131                              }
   2132                          
-  2133                          !ifdef MINIMUM {
-  2134                          ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-  2135                          ; JUMP table for some stability
-  2136                          * = $FFEE
-  2137                          JUART_INIT: JMP UART_INIT
-  2138                          JUART_OUT: JMP UART_OUT
-  2139                          JUART_IN: JMP UART_IN
-  2140                          JUART_CHK: JMP UART_CHK
-  2141                          
-  2142                          ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-  2143                          ; 6502 vectors 
-  2144                          * = $fffa
-  2145                              !word NMI
-  2146                              !word RESET
-  2147                              !word IRQ
-  2148                          }
-  2149                          
-  2150                          finish = *
+  2133                          }
+  2134                          
+  2135                          !ifdef MINIMUM {
+  2136                          ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+  2137                          ; JUMP table for some stability
+  2138                          * = $FFEE
+  2139                          JUART_INIT: JMP UART_INIT
+  2140                          JUART_OUT: JMP UART_OUT
+  2141                          JUART_IN: JMP UART_IN
+  2142                          JUART_CHK: JMP UART_CHK
+  2143                          
+  2144                          ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+  2145                          ; 6502 vectors 
+  2146                          * = $fffa
+  2147                              !word NMI
+  2148                              !word RESET
+  2149                              !word IRQ
+  2150                          }
+  2151                          
+  2152                          finish = *

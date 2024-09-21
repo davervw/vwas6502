@@ -158,7 +158,7 @@ drive=$a8
 
 !ifdef MINIMUM {
 *=$f000
-} else {
+} else { // any C64
 *=$bc00 ; use some extra RAM under C64 BASIC ROM for more code
 }
 
@@ -389,7 +389,7 @@ disassemble:
 !ifdef C64SCREEN {
     lda #<display_page_disassemble
     ldx #>display_page_disassemble
-    jsr callbank6
+    jmp callbank6
 } else {    
     rts
 }
@@ -894,7 +894,7 @@ executeaddr12:
     cpy len
     bne +
     jmp executedisplay12
-!ifndef MINIMUM {
+!ifndef MINIMUM { // any C64
 +   lda #<check_execute_save
     ldx #>check_execute_save
     jsr callbank6
@@ -1003,7 +1003,7 @@ displayhelp:
     lda #<generalhelp2
     ldx #>generalhelp2
     jsr strout
-!ifndef MINIMUM {
+!ifndef MINIMUM { // any C64
     lda #<display_extra_help
     ldx #>display_extra_help
     jsr callbank6
@@ -2111,17 +2111,19 @@ callbank6:
     jsr setbank
 calladdr: jsr $0000
     php ; save return status
+    pha ; save .A
     lda #7 ; normal memory configuration
+    jsr setbank
+    pla ; restore .A
     plp ; restore return status
-    ; fall through setbank
+    rts
+
 setbank:
-    php ; save possible return status
     sta banksel
     lda $01
     and #$f8 ; mask out bits 0,1,2
     ora banksel
     sta $01
-    plp ; restore possible return status
     rts
 
     !if * > $d000 {

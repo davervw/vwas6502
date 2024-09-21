@@ -147,10 +147,10 @@
 	nopcodes	= $97	; ?
 	notimplemented	= $ce2d	; ?
 	modes	= $cb80	; ?
-	finish	= $cfb8	; unused
+	finish	= $cfbc	; unused
 	inputhexnybble	= $c244	; ?
 	opidx	= $22
-	setbank	= $cfab	; ?
+	setbank	= $cfb1	; ?
 	chkcontinuedis	= $c8e3	; ?
 	strout2	= $c266
 	getkey	= $ffe4	; unused
