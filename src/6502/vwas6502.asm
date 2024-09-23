@@ -3,8 +3,10 @@
 ;; >>> STATUS: display/edit memory + run(JMP) + disassembler + assembler <<<
 ;; >>>                     *** MULTIPLATFORM ***                         <<< 
 ;; >>>       ****************************************************        <<< 
-;; >>>       **           TARGET  C64 and...                    *        <<<
-;; >>>       ** INCLUDES VERSION FOR 6502+MC6850 minimum system *        <<<
+;; >>>       **           TARGETS:                              *        <<<
+;; >>>       ** (1)  C64 8000-9FFF screen editor                *        <<<
+;; >>>       ** (2)  C64 8000-9FFF terminal edition             *        <<<
+;; >>>       ** (3)  6502+MC6850 minimum system                 *        <<<
 ;; >>>       *   60K(RAM),4K(ROM), 2 bytes IO for MC6850 UART   *        <<<
 ;; >>>       ****************************************************        <<<
 ;;
@@ -157,22 +159,24 @@ drive=$a8
 }
 
 !ifdef MINIMUM {
-*=$f000
+* = $f000
 } else { // any C64
-*=$bc00 ; use some extra RAM under C64 BASIC ROM for more code
+* = $8000
 }
 
-; ************************************************************************************
-; **** skip over next section, and see ** start ** below for beginning of program ****
-; ************************************************************************************
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+start:
+    lda #<copyright
+    ldx #>copyright
+    jsr strout
+    lda #<firsthelp
+    ldx #>firsthelp
+    jsr strout
+-   jsr inputline
+    jsr parseline
+    jmp -
 
 !ifndef MINIMUM {
 ; C64 only
-; THIS CODE IS IN RAM UNDER BASIC ROM SO USE EXTRA CARE AS RUNNING IN THIS DIFFERENT MEMORY CONFIGURATION
-; REQUIRES ENTRY WHILE RAM IS ACCESSIBLE (SEE SETBANK) BUT ROM IS INACCESSIBLE
-
 chkextrac64:
     jsr chkexit
     bne +
@@ -206,8 +210,7 @@ execute_exit:
     pla
     pla
     pla
-    lda #7
-    jmp setbank
+    rts
 
 display_extra_help:
     lda #<extra_help
@@ -336,22 +339,7 @@ page_disassemble !text "D",157,157,157,157,157,0
 page_displaymemory !text ".",157,157,157,157,157,0
 }
 
-*=$c000 ; switch to section of RAM always accessible for start...
 }
-
-;; end C64 part
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-start:
-    lda #<copyright
-    ldx #>copyright
-    jsr strout
-    lda #<firsthelp
-    ldx #>firsthelp
-    jsr strout
--   jsr inputline
-    jsr parseline
-    jmp -
 
 ; test: ; all the addressing modes here for testing disassembly
 ;     nop
@@ -387,9 +375,7 @@ disassemble:
 +   dec count
     bne -
 !ifdef C64SCREEN {
-    lda #<display_page_disassemble
-    ldx #>display_page_disassemble
-    jmp callbank6
+    jmp display_page_disassemble
 } else {    
     rts
 }
@@ -743,9 +729,7 @@ strout2:
 
 inputline:
 !ifdef C64SCREEN {
-    lda #<inputlinec64
-    ldx #>inputlinec64
-    jmp callbank6
+    jmp inputlinec64
 } else {
     ldy #0
 --  sty count
@@ -821,7 +805,7 @@ parseline:
     jmp executehelp
 +
 !ifndef MINIMUM {
-    jsr bank6_chkextrac64 ; check syntax only available on C64
+    jsr chkextrac64 ; check syntax only available on C64
     bcs + ; error if C set
     beq ++ ; consumed if Z set, skip next test(s)
 }    
@@ -830,13 +814,6 @@ parseline:
 ++  jmp executeaddr1
 error:
     jmp reporterr
-
-!ifndef MINIMUM {
-bank6_chkextrac64:
-    lda #<chkextrac64
-    ldx #>chkextrac64
-    jmp callbank6
-}
 
 executeaddr1:
     cpy len
@@ -859,9 +836,7 @@ executeaddr1:
 !ifdef MINIMUM {
     jmp reportnotimplemented
 } else {
-    lda #<chkfilename
-    ldx #>chkfilename
-    jsr callbank6
+    jsr chkfilename
     bne error
     jmp executeloadfilename
 }
@@ -895,9 +870,7 @@ executeaddr12:
     bne +
     jmp executedisplay12
 !ifndef MINIMUM { // any C64
-+   lda #<check_execute_save
-    ldx #>check_execute_save
-    jsr callbank6
++   jsr check_execute_save
     beq ++
 }
 +   jmp reportnotimplemented
@@ -945,9 +918,7 @@ executedisplay12:
     bit flag
     bpl ++
 !ifdef C64SCREEN {
-    lda #<display_page_displaymemory
-    ldx #>display_page_displaymemory
-    jmp callbank6
+    jmp display_page_displaymemory
 }
 ++  jmp newline
 
@@ -1004,9 +975,7 @@ displayhelp:
     ldx #>generalhelp2
     jsr strout
 !ifndef MINIMUM { // any C64
-    lda #<display_extra_help
-    ldx #>display_extra_help
-    jsr callbank6
+    jsr display_extra_help
 }
     lda #<firsthelp
     ldx #>firsthelp
@@ -1191,9 +1160,7 @@ executehelpinstruction:
 
 continueassemble:
 !ifdef C64SCREEN {   
-    lda #<continueassemblec64
-    ldx #>continueassemblec64
-    jsr callbank6
+    jsr continueassemblec64
 }
     ; continue...
 
@@ -2103,35 +2070,6 @@ generalhelp2
 
 modes_keyword !text "MODE", 0
 
-!ifndef MINIMUM { ; any C64
-callbank6:
-    sta calladdr+1
-    stx calladdr+2
-    lda #6 ; RAM under BASIC, otherwise similar to normal memory configuration
-    jsr setbank
-calladdr: jsr $0000
-    php ; save return status
-    pha ; save .A
-    lda #7 ; normal memory configuration
-    jsr setbank
-    pla ; restore .A
-    plp ; restore return status
-    rts
-
-setbank:
-    sta banksel
-    lda $01
-    and #$f8 ; mask out bits 0,1,2
-    ora banksel
-    sta $01
-    rts
-
-    !if * > $d000 {
-        !error "code/data overran $d000"
-    }
-
-}
-
 !ifdef MINIMUM {
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; JUMP table for some stability
@@ -2147,6 +2085,10 @@ JUART_CHK: JMP UART_CHK
     !word NMI
     !word RESET
     !word IRQ
+} else { // C64
+    !if * > $a000 {
+        !error "code/data overran $a000"
+    }
 }
 
 finish = *
