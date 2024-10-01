@@ -173,6 +173,8 @@ tmp=$ff
 }
 
 start:
+    cld
+    cli
     lda #<copyright
     ldx #>copyright
     jsr strout
@@ -1967,6 +1969,11 @@ execute_display_registers:
 pla ; remove return address
 pla
 +
+
+; need some normality
+cli
+cld
+
 jsr newline
 jsr display_registers
 jmp input_loop
@@ -2081,6 +2088,7 @@ IRQ:
     pla
     sta registerSR
     pla
+    cld
     sec
     sbc #2
     sta registerPC
@@ -2120,6 +2128,7 @@ brk64:
     pla
     sta registerSR
     pla
+    cld
     sec
     sbc #2
     sta registerPC
