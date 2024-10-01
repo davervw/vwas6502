@@ -72,7 +72,7 @@
 ;; 1000.2000 3000 m (move bytes $1000-$2000 inclusive to $3000, left/right move as appropriate)
 ;; 1000.2000: 01 02 03 (fill bytes to inclusive address range)
 ;; .? (display registers, VICE format or custom? screen editor changeable?)
-;; .A 00 (change register, replace A with X, Y, SP, PC, SR, N, V, B, D, I, Z, C as appropriate)
+;; .A: 00 (change register, replace A with X, Y, SP, S, PC, SR, P, N, V, B, D, I, Z, C as appropriate, colon is optional)
 ;; 1000 "filename" 08 load (load absolute, address optional, drive address is optional, can abbreviate to l)
 ;;
 ;; (INTERACTIVE ASSEMBLER)
@@ -171,9 +171,12 @@ start:
     lda #<firsthelp
     ldx #>firsthelp
     jsr strout
--   jsr inputline
+    jmp save_regs_and_stack
+
+input_loop:
+    jsr inputline
     jsr parseline
-    jmp -
+    jmp input_loop
 
 !ifndef MINIMUM {
 ; C64 only
@@ -328,17 +331,6 @@ executesave:
     ldy ptr2+1
     jsr fsave
     jmp newline
-
-extra_help:
-    !text "X           (EXIT MONITOR)", 13
-    !text "1000.2000 ", 34, "FILENAME", 34, " 08 S  (SAVE)"
-    !text 0
-
-!ifdef C64SCREEN {
-page_disassemble !text "D",157,157,157,157,157,0
-page_displaymemory !text ".",157,157,157,157,157,0
-}
-
 }
 
 ; test: ; all the addressing modes here for testing disassembly
@@ -618,6 +610,18 @@ dispModeInd:
     jsr dispModeAbs
     lda #')'
     jmp charout
+
+dispbinbyte: ; .A 00..FF
+    ldx #8
+    sta tmp
+-   lda #'0'
+    rol tmp
+    bcc +
+    lda #'1'
++   jsr charout
+    dex
+    bne -
+    rts
 
 disphexword: ; .A low, .X high, 0000..FFFF
     pha
@@ -965,6 +969,9 @@ executehelp:
 +   jsr chkinstruction
     bne +
     jmp executehelpinstruction
++   jsr chkhelpregisters
+    bne +
+    jmp execute_display_registers
 +   jmp reportnotimplemented
 
 displayhelp:
@@ -977,9 +984,7 @@ displayhelp:
 !ifndef MINIMUM { // any C64
     jsr display_extra_help
 }
-    lda #<firsthelp
-    ldx #>firsthelp
-    jmp strout
+    jmp newline
 
 chkhelpinstructions:
     lda inputbuf, y
@@ -988,6 +993,14 @@ chkhelpinstructions:
     lda inputbuf+1, y
     cmp #13
     ; no need to increment y if found, done parsing line
++   rts
+
+chkhelpregisters:
+    lda inputbuf, y
+    cmp #'.'
+    bne +
+    lda inputbuf+1, y
+    cmp #13
 +   rts
 
 chkhelpmodes:
@@ -1866,6 +1879,10 @@ newline:
     lda #13
     jmp charout
 
+space:
+    lda #32
+    jmp charout
+
 ; charout: ; for debugging, wait for scan line to pass over entire screen at least once
 ;     jsr $ffd2
 ;     pha
@@ -1879,6 +1896,109 @@ newline:
 ;     bmi -
 ;     pla
 ;     rts
+
+save_regs_and_stack:
+
+; save registers
+sta registerA
+stx registerX
+sty registerY
+
+; detect N/Z flags without affecting stack
+bmi +
+beq p_pl_eq
+
+lda #$00 ;p_pl_ne
+sta registerSR
+beq ++
+
+p_pl_eq:
+lda #$02
+sta registerSR
+bpl ++ 
+
++ beq p_mi_eq
+lda #$80 ;p_mi_ne
+sta registerSR
+bmi ++
+
+p_mi_eq:
+lda #$82
+sta registerSR
+
+; save SP register, affects N/Z
+++tsx
+stx registerSP
+
+; save stack, affects N/Z
+ldx #0
+-lda $100,x
+sta savestack,x
+inx
+bne -
+
+; save flags, combining unaffected ones with saved N/Z
+php
+pla
+and #$7d
+ora registerSP
+sta registerSP
+
+; restore stack byte affected
+tax
+lda savestack,x
+sta $100,x
+
+jmp +
+
+execute_display_registers:
+pla ; remove return address
+pla
++
+jsr display_registers
+jmp input_loop
+
+; PC   NV-BDIZC .A .X .Y .S
+; 1234 10111011 01 02 03 FF
+display_registers:
+    lda #<reg_header
+    ldx #>reg_header
+    jsr strout
+    lda registerPC
+    ldx registerPC+1
+    jsr disphexword
+    jsr space
+    lda registerSR
+    jsr dispbinbyte
+    jsr space
+    lda registerA
+    jsr disphexbyte
+    jsr space
+    lda registerX
+    jsr disphexbyte
+    jsr space
+    lda registerY
+    jsr disphexbyte
+    jsr space
+    lda registerSP
+    jsr disphexbyte
+    jmp newline
+
+loadregs_go:
+    ldy #0
+-   lda savestack,y
+    sta $100,y
+    iny
+    bne -
+    ldx registerSP
+    txs
+    lda registerSR
+    pha
+    lda registerA
+    ldx registerX
+    ldy registerY
+    plp
+    jmp (registerPC)
 
 !ifdef MINIMUM {
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -2044,12 +2164,24 @@ copyright
 !text 0
 
 firsthelp
-!text 13, "?       (SYNTAX)"
-!text 13, "? A     (LIST 6502 INSTRUCTIONS)"
-!text 13, "? ADC   (/ADC/ ADDRESSING MODES)"
-!text 13, "? MODE  (ADDRESSING MODES)"
 ;!text 13, "? KEYWORD FOR EXAMPLE(S)"
-!text 13, 0
+!text 13, 13
+!text "TYPE ? FOR HELP"
+!text 13, 13, 0
+
+!ifndef MINIMUM {
+; C64 only
+extra_help:
+    !text "X           (EXIT MONITOR)", 13
+    !text "1000.2000 ", 34, "FILENAME", 34, " 08 S  (SAVE)", 13
+    !text 0
+
+!ifdef C64SCREEN {
+page_disassemble !text "D",157,157,157,157,157,0
+page_displaymemory !text ".",157,157,157,157,157,0
+}
+
+}
 
 notimplemented !text "NOT IMPLEMENTED",13,0
 
@@ -2057,18 +2189,48 @@ generalhelp
 !text "1000        (DISPLAY MEMORY CONTENTS)",13
 !text "1000.100F   (DISPLAY RANGE CONTENTS)", 13
 !text "1000.       (SCREENFULL OF MEMORY)", 13
-!text 0
-generalhelp2
 !text ".           (NEXT SCREENFULL OF MEMORY)", 13
 !text "1000: 01 02 (MODIFY MEMORY)", 13
 !text "1000 R      (RUN PROGRAM - JMP)", 13
 !text "1000 A      (ASSEMBLE AT ADDRESS)", 13
+!text 0
+generalhelp2
 !text "1000 D      (DISASSEMBLE AT ADDRESS)", 13
 !text "A           (ASSEMBLE MORE)", 13
 !text "D           (DISASSEMBLE MORE)", 13
+!text "? A         (LIST 6502 INSTRUCTIONS)", 13
+!text "? ADC       (/ADC/ ADDRESSING MODES)", 13
+!text "? MODE      (ADDRESSING MODES)", 13
+!text "?.          (DISPLAY REGISTERS)", 13
 !text 0
 
 modes_keyword !text "MODE", 0
+
+reg_header !text " PC   NV-BDIZC .A .X .Y .S", 13, '.', 0
+
+registerA !byte 0
+registerX !byte 0
+registerY !byte 0
+registerSP !byte 0
+registerSR !byte 0
+registerPC !word 0
+savestack ; 256 bytes
+!byte 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+!byte 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+!byte 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+!byte 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+!byte 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+!byte 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+!byte 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+!byte 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+!byte 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+!byte 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+!byte 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+!byte 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+!byte 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+!byte 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+!byte 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+!byte 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
 
 !ifdef MINIMUM {
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
