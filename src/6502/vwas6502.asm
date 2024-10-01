@@ -2208,6 +2208,15 @@ modes_keyword !text "MODE", 0
 
 reg_header !text " PC   NV-BDIZC .A .X .Y .S", 13, '.', 0
 
+!ifdef MINIMUM {
+registerA = $def9
+registerX = $defa
+registerY = $defb
+registerSP = $defc
+registerSR = $defd
+registerPC = $defe;/f
+savestack = $df00
+} else {
 registerA !byte 0
 registerX !byte 0
 registerY !byte 0
@@ -2231,6 +2240,7 @@ savestack ; 256 bytes
 !byte 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
 !byte 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
 !byte 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+}
 
 !ifdef MINIMUM {
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
