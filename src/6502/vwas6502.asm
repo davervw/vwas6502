@@ -2064,7 +2064,7 @@ BREAK:
 
 RESET:
     cld
-    ldx #$00
+    ldx #$FF
     txs
     jsr JUART_INIT
     cli

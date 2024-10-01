@@ -2066,7 +2066,7 @@
   2064                          
   2065                          RESET:
   2066                              cld
-  2067                              ldx #$00
+  2067                              ldx #$FF
   2068                              txs
   2069                              jsr JUART_INIT
   2070                              cli
