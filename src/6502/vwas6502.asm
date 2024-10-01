@@ -141,9 +141,6 @@ ptr1=$fb ; and $fc
 ptr2=$fd ; and $fe
 tmp=$ff
 } else {
-ptr1=$fb ; and $fc
-ptr2=$fd ; and $fe
-tmp=$ff
 opidx=$22
 inidx=$23
 mode=$24
@@ -154,8 +151,9 @@ len=$a4
 savepos=$a5
 tmp2=$a6
 flag=$a7
-banksel=$02
-drive=$a8
+ptr1=$fb ; and $fc
+ptr2=$fd ; and $fe
+tmp=$ff
 }
 
 !ifdef MINIMUM {
@@ -2285,6 +2283,7 @@ registerPC = $defe;/f
 savestack = $df00
 } else {
 savebrkvector !word 0
+drive !byte 0
 registerA !byte 0
 registerX !byte 0
 registerY !byte 0
