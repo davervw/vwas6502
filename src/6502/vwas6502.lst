@@ -1943,8 +1943,8 @@
   1941  8b10 08                 php
   1942  8b11 68                 pla
   1943  8b12 297d               and #$7d
-  1944  8b14 0de591             ora registerSP
-  1945  8b17 8de591             sta registerSP
+  1944  8b14 0de691             ora registerSR
+  1945  8b17 8de691             sta registerSR
   1946                          
   1947                          ; restore stack byte affected
   1948  8b1a aa                 tax

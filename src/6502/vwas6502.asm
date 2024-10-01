@@ -1941,8 +1941,8 @@ bne -
 php
 pla
 and #$7d
-ora registerSP
-sta registerSP
+ora registerSR
+sta registerSR
 
 ; restore stack byte affected
 tax
