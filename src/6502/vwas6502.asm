@@ -162,6 +162,16 @@ drive=$a8
 * = $e000
 } else { // any C64
 * = $8000
+    lda $316
+    ldx $317
+    cpx #>brk64
+    beq start
+    sta savebrkvector
+    stx savebrkvector+1
+    lda #<brk64
+    ldx #>brk64
+    sta $316
+    stx $317
 }
 
 start:
@@ -206,6 +216,10 @@ extra_error:
     rts
 
 execute_exit:
+    lda savebrkvector
+    ldx savebrkvector+1
+    sta $316
+    stx $317
     ; pop monitor return addresses, so only original caller is left
     pla
     pla
@@ -2096,7 +2110,33 @@ RESET:
     jsr JUART_INIT
     cli
     jmp start
-} ; !ifdef MINIMUM
+; !ifdef MINIMUM
+} else { ; not MINIMUM
+brk64:
+    pla
+    tay
+    pla
+    tax
+    pla
+    sta registerA
+    pla
+    sta registerSR
+    pla
+    sec
+    sbc #2
+    sta registerPC
+    pla
+    sbc #0
+    sta registerPC+1
+    lda #>save_regs_and_stack
+    pha
+    lda #<save_regs_and_stack
+    pha
+    lda registerSR
+    pha
+    lda registerA
+    rti
+}
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; data
@@ -2244,6 +2284,7 @@ registerSR = $defd
 registerPC = $defe;/f
 savestack = $df00
 } else {
+savebrkvector !word 0
 registerA !byte 0
 registerX !byte 0
 registerY !byte 0
