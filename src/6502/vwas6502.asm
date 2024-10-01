@@ -160,16 +160,29 @@ tmp=$ff
 * = $e000
 } else { // any C64
 * = $8000
+    ; check if irq/brk vector installed
     lda $316
     ldx $317
     cpx #>brk64
-    beq start
+    beq +
     sta savebrkvector
     stx savebrkvector+1
     lda #<brk64
     ldx #>brk64
     sta $316
     stx $317
++   ; check if nmi vector installed
+    lda $318
+    ldx $319
+    cpx #>nmi64
+    beq +
+    sta savenmivector
+    stx savenmivector+1
+    lda #<nmi64
+    ldx #>nmi64
+    sta $318
+    stx $319
+    +
 }
 
 start:
@@ -220,6 +233,10 @@ execute_exit:
     ldx savebrkvector+1
     sta $316
     stx $317
+    lda savenmivector
+    ldx savenmivector+1
+    sta $318
+    stx $319
     ; pop monitor return addresses, so only original caller is left
     pla
     pla
@@ -2118,6 +2135,25 @@ RESET:
     jmp start
 ; !ifdef MINIMUM
 } else { ; not MINIMUM
+nmi64:
+    sei
+    sta registerA
+    pla
+    sta registerSR
+    pla
+    cld
+    sta registerPC
+    pla
+    sta registerPC+1
+    lda #>save_regs_and_stack
+    pha
+    lda #<save_regs_and_stack
+    pha
+    lda registerSR
+    pha
+    lda registerA
+    rti
+
 brk64:
     pla
     tay
@@ -2292,6 +2328,7 @@ registerPC = $defe;/f
 savestack = $df00
 } else {
 savebrkvector !word 0
+savenmivector !word 0
 drive !byte 0
 registerA !byte 0
 registerX !byte 0
