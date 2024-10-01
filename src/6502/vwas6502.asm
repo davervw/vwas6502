@@ -1955,6 +1955,7 @@ execute_display_registers:
 pla ; remove return address
 pla
 +
+jsr newline
 jsr display_registers
 jmp input_loop
 
@@ -2057,7 +2058,33 @@ NMI: ; unused on minimum (no source of interrupt)
     rti
 
 IRQ:
-    rti ; TODO implement BRK HANDLING in monitor
+    pha
+    php
+    pla
+    and #$10
+    beq ++ ; not break
+;BREAK HANDLER
+    pla
+    sta registerA
+    pla
+    sta registerSR
+    pla
+    sec
+    sbc #2
+    sta registerPC
+    pla
+    sbc #0
+    sta registerPC+1
+    lda #>save_regs_and_stack
+    pha
+    lda #<save_regs_and_stack
+    pha
+    lda registerSR
+    pha
+    lda registerA
+    pha
+++  pla
+    rti
 
 BREAK:
     jmp RESET
@@ -2167,7 +2194,7 @@ firsthelp
 ;!text 13, "? KEYWORD FOR EXAMPLE(S)"
 !text 13, 13
 !text "TYPE ? FOR HELP"
-!text 13, 13, 0
+!text 13, 0
 
 !ifndef MINIMUM {
 ; C64 only
