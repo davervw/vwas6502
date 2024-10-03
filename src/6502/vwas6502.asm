@@ -1942,74 +1942,74 @@ space:
 
 save_regs_and_stack:
 
-; save registers
-sta registerA
-stx registerX
-sty registerY
+    ; save registers
+    sta registerA
+    stx registerX
+    sty registerY
 
-; detect N/Z flags without affecting stack
-bmi +
-beq p_pl_eq
+    ; detect N/Z flags without affecting stack
+    bmi +
+    beq p_pl_eq
 
-lda #$00 ;p_pl_ne
-sta registerSR
-beq ++
+    lda #$00 ;p_pl_ne
+    sta registerSR
+    beq ++
 
 p_pl_eq:
-lda #$02
-sta registerSR
-bpl ++ 
+    lda #$02
+    sta registerSR
+    bpl ++ 
 
-+ beq p_mi_eq
-lda #$80 ;p_mi_ne
-sta registerSR
-bmi ++
+    + beq p_mi_eq
+    lda #$80 ;p_mi_ne
+    sta registerSR
+    bmi ++
 
 p_mi_eq:
-lda #$82
-sta registerSR
+    lda #$82
+    sta registerSR
 
-; save SP register, affects N/Z
-++tsx
-stx registerSP
+    ; save SP register, affects N/Z
+    ++tsx
+    stx registerSP
 
-; save stack, affects N/Z
-ldx #0
--lda $100,x
-sta savestack,x
-inx
-bne -
+    ; save stack, affects N/Z
+    ldx #0
+    -lda $100,x
+    sta savestack,x
+    inx
+    bne -
 
-; save flags, combining unaffected ones with saved N/Z
-php
-pla
-and #$7d
-ora registerSR
-sta registerSR
+    ; save flags, combining unaffected ones with saved N/Z
+    php
+    pla
+    and #$7d
+    ora registerSR
+    sta registerSR
 
-; restore stack byte affected
-tax
-lda savestack,x
-sta $100,x
+    ; restore stack byte affected
+    tax
+    lda savestack,x
+    sta $100,x
 
-jmp +
+    jmp +
 
 execute_display_registers:
-pla ; remove return address
-pla
-+
+    pla ; remove return address
+    pla
+    +
 
-; need some normality
-cli
-cld
+    ; need some normality
+    cli
+    cld
 
-jsr newline
-jsr display_registers
+    jsr newline
+    jsr display_registers
 !ifndef MINIMUM {
-; any C64
-jsr uninstall_nmi64
+    ; any C64
+    jsr uninstall_nmi64
 }
-jmp input_loop
+    jmp input_loop
 
 ; PC   NV-BDIZC .A .X .Y .S
 ; 1234 10111011 01 02 03 FF

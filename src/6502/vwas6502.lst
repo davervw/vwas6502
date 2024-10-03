@@ -1944,74 +1944,74 @@
   1942                          
   1943                          save_regs_and_stack:
   1944                          
-  1945                          ; save registers
-  1946  8b34 8d9192             sta registerA
-  1947  8b37 8e9292             stx registerX
-  1948  8b3a 8c9392             sty registerY
+  1945                              ; save registers
+  1946  8b34 8d9192                 sta registerA
+  1947  8b37 8e9292                 stx registerX
+  1948  8b3a 8c9392                 sty registerY
   1949                          
-  1950                          ; detect N/Z flags without affecting stack
-  1951  8b3d 3010               bmi +
-  1952  8b3f f007               beq p_pl_eq
+  1950                              ; detect N/Z flags without affecting stack
+  1951  8b3d 3010                   bmi +
+  1952  8b3f f007                   beq p_pl_eq
   1953                          
-  1954  8b41 a900               lda #$00 ;p_pl_ne
-  1955  8b43 8d9592             sta registerSR
-  1956  8b46 f015               beq ++
+  1954  8b41 a900                   lda #$00 ;p_pl_ne
+  1955  8b43 8d9592                 sta registerSR
+  1956  8b46 f015                   beq ++
   1957                          
   1958                          p_pl_eq:
-  1959  8b48 a902               lda #$02
-  1960  8b4a 8d9592             sta registerSR
-  1961  8b4d 100e               bpl ++ 
+  1959  8b48 a902                   lda #$02
+  1960  8b4a 8d9592                 sta registerSR
+  1961  8b4d 100e                   bpl ++ 
   1962                          
-  1963  8b4f f007               + beq p_mi_eq
-  1964  8b51 a980               lda #$80 ;p_mi_ne
-  1965  8b53 8d9592             sta registerSR
-  1966  8b56 3005               bmi ++
+  1963  8b4f f007                   + beq p_mi_eq
+  1964  8b51 a980                   lda #$80 ;p_mi_ne
+  1965  8b53 8d9592                 sta registerSR
+  1966  8b56 3005                   bmi ++
   1967                          
   1968                          p_mi_eq:
-  1969  8b58 a982               lda #$82
-  1970  8b5a 8d9592             sta registerSR
+  1969  8b58 a982                   lda #$82
+  1970  8b5a 8d9592                 sta registerSR
   1971                          
-  1972                          ; save SP register, affects N/Z
-  1973  8b5d ba                 ++tsx
-  1974  8b5e 8e9492             stx registerSP
+  1972                              ; save SP register, affects N/Z
+  1973  8b5d ba                     ++tsx
+  1974  8b5e 8e9492                 stx registerSP
   1975                          
-  1976                          ; save stack, affects N/Z
-  1977  8b61 a200               ldx #0
-  1978  8b63 bd0001             -lda $100,x
-  1979  8b66 9d9892             sta savestack,x
-  1980  8b69 e8                 inx
-  1981  8b6a d0f7               bne -
+  1976                              ; save stack, affects N/Z
+  1977  8b61 a200                   ldx #0
+  1978  8b63 bd0001                 -lda $100,x
+  1979  8b66 9d9892                 sta savestack,x
+  1980  8b69 e8                     inx
+  1981  8b6a d0f7                   bne -
   1982                          
-  1983                          ; save flags, combining unaffected ones with saved N/Z
-  1984  8b6c 08                 php
-  1985  8b6d 68                 pla
-  1986  8b6e 297d               and #$7d
-  1987  8b70 0d9592             ora registerSR
-  1988  8b73 8d9592             sta registerSR
+  1983                              ; save flags, combining unaffected ones with saved N/Z
+  1984  8b6c 08                     php
+  1985  8b6d 68                     pla
+  1986  8b6e 297d                   and #$7d
+  1987  8b70 0d9592                 ora registerSR
+  1988  8b73 8d9592                 sta registerSR
   1989                          
-  1990                          ; restore stack byte affected
-  1991  8b76 aa                 tax
-  1992  8b77 bd9892             lda savestack,x
-  1993  8b7a 9d0001             sta $100,x
+  1990                              ; restore stack byte affected
+  1991  8b76 aa                     tax
+  1992  8b77 bd9892                 lda savestack,x
+  1993  8b7a 9d0001                 sta $100,x
   1994                          
-  1995  8b7d 4c828b             jmp +
+  1995  8b7d 4c828b                 jmp +
   1996                          
   1997                          execute_display_registers:
-  1998  8b80 68                 pla ; remove return address
-  1999  8b81 68                 pla
-  2000                          +
+  1998  8b80 68                     pla ; remove return address
+  1999  8b81 68                     pla
+  2000                              +
   2001                          
-  2002                          ; need some normality
-  2003  8b82 58                 cli
-  2004  8b83 d8                 cld
+  2002                              ; need some normality
+  2003  8b82 58                     cli
+  2004  8b83 d8                     cld
   2005                          
-  2006  8b84 202a8b             jsr newline
-  2007  8b87 20908b             jsr display_registers
+  2006  8b84 202a8b                 jsr newline
+  2007  8b87 20908b                 jsr display_registers
   2008                          !ifndef MINIMUM {
-  2009                          ; any C64
-  2010  8b8a 205480             jsr uninstall_nmi64
+  2009                              ; any C64
+  2010  8b8a 205480                 jsr uninstall_nmi64
   2011                          }
-  2012  8b8d 4c3080             jmp input_loop
+  2012  8b8d 4c3080                 jmp input_loop
   2013                          
   2014                          ; PC   NV-BDIZC .A .X .Y .S
   2015                          ; 1234 10111011 01 02 03 FF
