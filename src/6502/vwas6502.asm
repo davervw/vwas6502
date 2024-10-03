@@ -171,18 +171,7 @@ tmp=$ff
     ldx #>brk64
     sta $316
     stx $317
-+   ; check if nmi vector installed
-    lda $318
-    ldx $319
-    cpx #>nmi64
-    beq +
-    sta savenmivector
-    stx savenmivector+1
-    lda #<nmi64
-    ldx #>nmi64
-    sta $318
-    stx $319
-    +
++   jsr install_nmi64   
 }
 
 start:
@@ -203,6 +192,28 @@ input_loop:
 
 !ifndef MINIMUM {
 ; C64 only
+
+install_nmi64:
+    ; check if nmi vector installed
+    lda $318
+    ldx $319
+    cpx #>nmi64
+    beq +
+    sta savenmivector
+    stx savenmivector+1
+    lda #<nmi64
+    ldx #>nmi64
+    sta $318
+    stx $319
++   rts
+
+uninstall_nmi64:
+    lda savenmivector
+    ldx savenmivector+1
+    sta $318
+    stx $319
+    rts
+
 chkextrac64:
     jsr chkexit
     bne +
@@ -233,10 +244,7 @@ execute_exit:
     ldx savebrkvector+1
     sta $316
     stx $317
-    lda savenmivector
-    ldx savenmivector+1
-    sta $318
-    stx $319
+    jsr uninstall_nmi64
     ; pop monitor return addresses, so only original caller is left
     pla
     pla
@@ -1741,6 +1749,10 @@ executerun:
     sta ptr1
     bcs +
     dec ptr1+1
+!ifndef MINIMUM {
+; any C64
+    jsr install_nmi64
+}
 +   lda ptr1+1
     pha
     lda ptr1
@@ -1993,6 +2005,10 @@ cld
 
 jsr newline
 jsr display_registers
+!ifndef MINIMUM {
+; any C64
+jsr uninstall_nmi64
+}
 jmp input_loop
 
 ; PC   NV-BDIZC .A .X .Y .S
