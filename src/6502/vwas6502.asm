@@ -1743,21 +1743,25 @@ executerun:
     pla ; again, we're really not returning
     pla ; again, we're really not returning
     jsr newline
-    sec
-    lda ptr1
-    sbc #1
-    sta ptr1
-    bcs +
-    dec ptr1+1
 !ifndef MINIMUM {
 ; any C64
     jsr install_nmi64
 }
-+   lda ptr1+1
++   ; restore stack and registers
+    ldy #0
+-   lda savestack,y
+    sta $100,y
+    iny
+    bne -
+    ldx registerSP
+    txs
+    lda registerSR
     pha
-    lda ptr1
-    pha
-    rts
+    lda registerA
+    ldx registerX
+    ldy registerY
+    plp
+    jmp (ptr1)
 
 chkcontinuedis:
     lda inputbuf,y
@@ -2036,22 +2040,6 @@ display_registers:
     lda registerSP
     jsr disphexbyte
     jmp newline
-
-loadregs_go:
-    ldy #0
--   lda savestack,y
-    sta $100,y
-    iny
-    bne -
-    ldx registerSP
-    txs
-    lda registerSR
-    pha
-    lda registerA
-    ldx registerX
-    ldy registerY
-    plp
-    jmp (registerPC)
 
 !ifdef MINIMUM {
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
