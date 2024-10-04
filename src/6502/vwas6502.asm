@@ -1910,13 +1910,22 @@ chkaddr1cmd:
     lda inputbuf, y
 +   cmp #'A'
     bne +
+    ldx inputbuf+1, y
+    cpx #13
+    bne +
     iny
     jmp executeassemble
 +   cmp #'D'
     bne +
+    ldx inputbuf+1, y
+    cpx #13
+    bne +
     iny
     jmp executedisassemble
 +   cmp #'R'
+    bne +
+    ldx inputbuf+1, y
+    cpx #13
     bne +
     iny
     jmp executerun
