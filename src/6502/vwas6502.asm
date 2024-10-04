@@ -2312,9 +2312,9 @@ generalhelp2
 !text "1000 D      (DISASSEMBLE AT ADDRESS)", 13
 !text "A           (ASSEMBLE MORE)", 13
 !text "D           (DISASSEMBLE MORE)", 13
-!text "? A         (LIST 6502 INSTRUCTIONS)", 13
-!text "? ADC       (/ADC/ ADDRESSING MODES)", 13
-!text "? MODE      (ADDRESSING MODES)", 13
+!text "?A          (LIST 6502 INSTRUCTIONS)", 13
+!text "?ADC        (/ADC/ ADDRESSING MODES)", 13
+!text "?MODE       (ADDRESSING MODES)", 13
 !text "?.          (DISPLAY REGISTERS)", 13
 !text 0
 
