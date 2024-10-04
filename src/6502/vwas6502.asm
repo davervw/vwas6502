@@ -62,18 +62,18 @@
 ;; 1000 a (assemble starting at, interactive until empty line) 
 ;; x (exit monitor -- C64 only)
 ;; ? (commands help)
-;; ? a (list instructions available)
-;; ? adc (assembler addressing modes examples for a specific instruction, replace adc with desired instruction)
-;; ? mode (show addressing modes example syntax for 6502)
+;; ?a (list instructions available)
+;; ?adc (assembler addressing modes examples for a specific instruction, replace adc with desired instruction)
+;; ?mode (show addressing modes example syntax for 6502)
 ;; 1000.2000 "filename" 08 s (C64: save range of bytes from $1000 up to not including $2000, Commodore drive address is optional, defaults to 8)
 ;; .? (display registers in format .1234 10110000 01 02 03 f6)
-;; .1234 10110000 01 02 03 f6 (set registers PC FLAGS A X Y SP)
+;; .1234 10110000 01 02 03 f6 (set registers PC FLAGS A X Y S)
+;; .A:00 (change register, replace A with X, Y, S, P as appropriate, use space or colon as separator)
 ;; (FUTURE SYNTAX, not implemented)
 ;; 1000.2000 "text" ? (search for text in address range inclusive)
 ;; 1000.2000 A9 FF ? (search for byte sequence in address range inclusive)
 ;; 1000.2000 3000 m (move bytes $1000-$2000 inclusive to $3000, left/right move as appropriate)
 ;; 1000.2000: 01 02 03 (fill bytes to inclusive address range)
-;; .A: 00 (change register, replace A with X, Y, SP, S, PC, SR, P, N, V, B, D, I, Z, C as appropriate, colon is optional)
 ;; 1000 "filename" 08 load (load absolute, address optional, drive address is optional, can abbreviate to l)
 ;;
 ;; (INTERACTIVE ASSEMBLER)
@@ -987,12 +987,74 @@ executedot:
     cpy len
     bne +
     jmp executepagedisplay
-
++   jsr chkloadregister
+    bne +
 +   jsr chkloadregisters
 
 executeloadfilename:
 executeaddr1cmd:
 +   jmp reportnotimplemented
+
+chkloadregister:
+    jsr chkload_a_x_y_s_p
+    jsr chkload_pc
+    jsr chkload_n_v_b_d_i_z_c
+    rts
+
+chkload_a_x_y_s_p:
+    sty tmp
+    lda inputbuf, y
+    ldx #0
+    cmp #'A'
+    beq +
+    inx
+    cmp #'X'
+    beq +
+    inx
+    cmp #'Y'
+    beq +
+    inx
+    cmp #'S'
+    beq +
+    inx
+    cmp #'P'
+    bne ++
++   iny
+    lda inputbuf, y    
+!ifndef MINIMUM {
+    cmp #$A0
+    beq +
+}    
+    cmp #' '
+    beq +
+    cmp #':'
+    bne ++
++   iny
+    jsr skipspaces
+    stx mode
+    jsr chkhexbyte
+    bne ++
+    ldx mode
+    sta registerA, x
+!ifndef MINIMUM {
+    jsr newline
+}    
+    ; pop call stack so return to input_loop
+    pla
+    pla
+    pla
+    pla
+    jmp +++
+++  ldy tmp ; not Z (NE)
++++ rts
+
+chkload_pc:
+    lda #1 ; not Z (NE)
+    rts
+
+chkload_n_v_b_d_i_z_c:
+    lda #1 ; not Z (NE)
+    rts
 
 chkloadregisters:
     jsr chkhexword
@@ -1026,7 +1088,7 @@ chkloadregisters:
     jsr chkhexbyte
     bne +
     sta registerSP
-    ; don't return to chkdot
+    ; don't return to executedot
 +   pla
     pla
 !ifdef C64SCREEN {   
@@ -1063,6 +1125,9 @@ displayhelp:
     jsr strout
     lda #<generalhelp2
     ldx #>generalhelp2
+    jsr strout
+    lda #<generalhelp3
+    ldx #>generalhelp3
     jsr strout
 !ifndef MINIMUM { // any C64
     jsr display_extra_help
@@ -2406,7 +2471,11 @@ generalhelp2
 !text "?A          (LIST 6502 INSTRUCTIONS)", 13
 !text "?ADC        (/ADC/ ADDRESSING MODES)", 13
 !text "?MODE       (ADDRESSING MODES)", 13
+!text 0
+generalhelp3
 !text "?.          (DISPLAY REGISTERS)", 13
+!text ".1234       (MODIFY PC,FLAGS,REGISTERS)", 13
+!text ".A:01       (MODIFY REGISTER A,X,Y,S,P)", 13
 !text 0
 
 modes_keyword !text "MODE", 0
