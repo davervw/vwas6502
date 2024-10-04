@@ -66,12 +66,13 @@
 ;; ? adc (assembler addressing modes examples for a specific instruction, replace adc with desired instruction)
 ;; ? mode (show addressing modes example syntax for 6502)
 ;; 1000.2000 "filename" 08 s (C64: save range of bytes from $1000 up to not including $2000, Commodore drive address is optional, defaults to 8)
+;; .? (display registers in format .1234 10110000 01 02 03 f6)
+;; .1234 10110000 01 02 03 f6 (set registers PC FLAGS A X Y SP)
 ;; (FUTURE SYNTAX, not implemented)
 ;; 1000.2000 "text" ? (search for text in address range inclusive)
 ;; 1000.2000 A9 FF ? (search for byte sequence in address range inclusive)
 ;; 1000.2000 3000 m (move bytes $1000-$2000 inclusive to $3000, left/right move as appropriate)
 ;; 1000.2000: 01 02 03 (fill bytes to inclusive address range)
-;; .? (display registers, VICE format or custom? screen editor changeable?)
 ;; .A: 00 (change register, replace A with X, Y, SP, S, PC, SR, P, N, V, B, D, I, Z, C as appropriate, colon is optional)
 ;; 1000 "filename" 08 load (load absolute, address optional, drive address is optional, can abbreviate to l)
 ;;
@@ -987,9 +988,52 @@ executedot:
     bne +
     jmp executepagedisplay
 
++   jsr chkloadregisters
+
 executeloadfilename:
 executeaddr1cmd:
 +   jmp reportnotimplemented
+
+chkloadregisters:
+    jsr chkhexword
+    bne ++
+    lda ptr1
+    sta registerPC
+    lda ptr1+1
+    sta registerPC+1
+    jsr chkspace
+    bne +
+    jsr chkbinbyte
+    bne +
+    sta registerSR
+    jsr chkspace
+    bne +
+    jsr chkhexbyte
+    bne +
+    sta registerA
+    jsr chkspace
+    bne +
+    jsr chkhexbyte
+    bne +
+    sta registerX
+    jsr chkspace
+    bne +
+    jsr chkhexbyte
+    bne +
+    sta registerY
+    jsr chkspace
+    bne +
+    jsr chkhexbyte
+    bne +
+    sta registerSP
+    ; don't return to chkdot
++   pla
+    pla
+!ifdef C64SCREEN {   
+    jsr newline
+}   
+    lda #0 ; set Z
+++  rts
 
 executehelp:
 !ifdef C64SCREEN {
@@ -1809,6 +1853,20 @@ reporterr:
     jsr charout
     rts
 
+chkspace:
+    lda inputbuf, y
+!ifndef MINIMUM {
+    ; skip SHIFT-SPACES too on Commodore
+    cmp #$A0
+    beq +
+}
+    cmp #$20
+    bne ++
++   iny
+    jsr skipspaces
+    lda #0 ; set Z
+++  rts
+
 skipspaces:
 -   lda inputbuf, y
 !ifndef MINIMUM {
@@ -1906,6 +1964,30 @@ chkhexaddr2:
     lda #0 ; Z true (EQ)
     rts    
 
+chkbinbyte:
+    ldx #8
+-   jsr chkbindigit
+    bne +
+    dex
+    bne -
+    php ; save Z true
+    lda tmp2
+    plp ; restore Z true
++   rts
+
+chkbindigit:
+    lda inputbuf, y
+    sec
+    sbc #$30
+    bcc +
+    cmp #$02
+    bcs +
+    lsr ; rotate bit value into C
+    rol tmp2 ; rotate bit value into tmp2
+    iny ; advance in buffer
+    lda #0 ; set Z
++   rts
+
 chkaddr1cmd:
     lda inputbuf, y
 +   cmp #'A'
@@ -1973,7 +2055,7 @@ p_pl_eq:
     sta registerSR
     bpl ++ 
 
-    + beq p_mi_eq
++   beq p_mi_eq
     lda #$80 ;p_mi_ne
     sta registerSR
     bmi ++
@@ -1983,12 +2065,12 @@ p_mi_eq:
     sta registerSR
 
     ; save SP register, affects N/Z
-    ++tsx
+++  tsx
     stx registerSP
 
     ; save stack, affects N/Z
     ldx #0
-    -lda $100,x
+-   lda $100,x
     sta savestack,x
     inx
     bne -
@@ -2010,7 +2092,7 @@ p_mi_eq:
 execute_display_registers:
     pla ; remove return address
     pla
-    +
++
 
     ; need some normality
     cli
