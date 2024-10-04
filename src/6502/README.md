@@ -14,10 +14,15 @@ Monitor with mini-assembler and disassembler
 ``1000`` display memory byte contents  
 ``1000.100F`` display memory range contents  
 ``1000.`` display screenfull of memory  
-``.`` display next screenfull of memory
+``.`` display next screenfull of memory  
+``?.`` display PC, flags, and registers
 
 ## Modify
-``1000: 01 02 03`` modify memory contents
+``1000: 01 02 03`` modify memory contents  
+``.A: F1`` modify register contents (any of .A, .X, .Y, .S, .P)  
+``.1234 11111111 01 02 03 F4`` modify PC, flags, and registers .A, .X, .Y, .S  
+``.1234`` modify PC only  
+``.1234 11111111`` modify PC and flags only, etc.
 
 ## Run
 ``1000 R`` run program (JMP)
@@ -42,6 +47,7 @@ Monitor with mini-assembler and disassembler
 
 ## Notes
 
+* Programs used in monitor should end with BRK
 * Original code!  Not a port, nothing borrowed except look and feel.
 * This monitor is borrowing the look and feel of [WozMon](https://github.com/davervw/wozmon_cbm) (of Apple 1 fame).  Commands are similar, but not exact behavior and syntax as this is brand new code, and a different command parser.
 * The succeded goal was to port this monitor for use with my minimal 6502 emulated environment [(Twitter/X announcement)](https://x.com/DaveRVW/status/1787386286552268934) delivered with the [c-simple-emu6502-cbm terminal version](https://github.com/davervw/c-simple-emu6502-cbm) and [(unified) graphical version](https://github.com/davervw/c-simple-emu6502-cbm/tree/unified).  Note the unified branch has a take/restore snapshot feature in lieu of loading/saving.
