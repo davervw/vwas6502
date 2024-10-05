@@ -184,7 +184,7 @@ start:
     lda #<firsthelp
     ldx #>firsthelp
     jsr strout
-    jmp save_regs_and_stack
+    jmp save_registers
 
 input_loop:
     jsr inputline
@@ -1856,12 +1856,7 @@ executerun:
 ; any C64
     jsr install_nmi64
 }
-+   ; restore stack and registers
-    ldy #0
--   lda savestack,y
-    sta $100,y
-    iny
-    bne -
++   ; restore registers
     ldx registerSP
     txs
     lda registerSR
@@ -2100,65 +2095,21 @@ space:
 ;     pla
 ;     rts
 
-save_regs_and_stack:
-
-    ; save registers
+save_registers:
+    php
     sta registerA
     stx registerX
     sty registerY
-
-    ; detect N/Z flags without affecting stack
-    bmi +
-    beq p_pl_eq
-
-    lda #$00 ;p_pl_ne
-    sta registerSR
-    beq ++
-
-p_pl_eq:
-    lda #$02
-    sta registerSR
-    bpl ++ 
-
-+   beq p_mi_eq
-    lda #$80 ;p_mi_ne
-    sta registerSR
-    bmi ++
-
-p_mi_eq:
-    lda #$82
-    sta registerSR
-
-    ; save SP register, affects N/Z
-++  tsx
-    stx registerSP
-
-    ; save stack, affects N/Z
-    ldx #0
--   lda $100,x
-    sta savestack,x
-    inx
-    bne -
-
-    ; save flags, combining unaffected ones with saved N/Z
-    php
     pla
-    and #$7d
-    ora registerSR
     sta registerSR
-
-    ; restore stack byte affected
-    tax
-    lda savestack,x
-    sta $100,x
-
+    tsx
+    stx registerSP
     jmp +
 
 execute_display_registers:
     pla ; remove return address
     pla
 +
-
     ; need some normality
     cli
     cld
@@ -2272,9 +2223,9 @@ IRQ:
     pla
     sbc #0
     sta registerPC+1
-    lda #>save_regs_and_stack
+    lda #>save_registers
     pha
-    lda #<save_regs_and_stack
+    lda #<save_registers
     pha
     lda registerSR
     pha
@@ -2305,9 +2256,9 @@ nmi64:
     sta registerPC
     pla
     sta registerPC+1
-    lda #>save_regs_and_stack
+    lda #>save_registers
     pha
-    lda #<save_regs_and_stack
+    lda #<save_registers
     pha
     lda registerSR
     pha
@@ -2331,9 +2282,9 @@ brk64:
     pla
     sbc #0
     sta registerPC+1
-    lda #>save_regs_and_stack
+    lda #>save_registers
     pha
-    lda #<save_regs_and_stack
+    lda #<save_registers
     pha
     lda registerSR
     pha
@@ -2483,13 +2434,12 @@ modes_keyword !text "MODE", 0
 reg_header !text " PC   NV-BDIZC .A .X .Y .S", 13, '.', 0
 
 !ifdef MINIMUM {
-registerA = $def9
-registerX = $defa
-registerY = $defb
-registerSP = $defc
-registerSR = $defd
-registerPC = $defe;/f
-savestack = $df00
+registerA = $dff9
+registerX = $dffa
+registerY = $dffb
+registerSP = $dffc
+registerSR = $dffd
+registerPC = $dffe;/f
 } else {
 savebrkvector !word 0
 savenmivector !word 0
@@ -2500,23 +2450,6 @@ registerY !byte 0
 registerSP !byte 0
 registerSR !byte 0
 registerPC !word 0
-savestack ; 256 bytes
-!byte 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
-!byte 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
-!byte 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
-!byte 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
-!byte 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
-!byte 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
-!byte 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
-!byte 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
-!byte 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
-!byte 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
-!byte 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
-!byte 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
-!byte 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
-!byte 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
-!byte 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
-!byte 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
 }
 
 !ifdef MINIMUM {
