@@ -1,8 +1,8 @@
 ;; vwas6502.asm - interactive console 6502 assembler
 ;;
 ;; >>> STATUS: display/edit memory + run(JMP) + disassembler + assembler <<<
-;; >>>                     *** MULTIPLATFORM ***                         <<< 
-;; >>>       ****************************************************        <<< 
+;; >>>                     *** MULTIPLATFORM ***                         <<<
+;; >>>       ****************************************************        <<<
 ;; >>>       **           TARGETS:                              *        <<<
 ;; >>>       ** (1)  C64 8000-9FFF screen editor                *        <<<
 ;; >>>       ** (2)  C64 8000-9FFF terminal edition             *        <<<
@@ -59,7 +59,7 @@
 ;; (NEW SYNTAX)
 ;; 1000 d (disassemble starting at address, for screenful)
 ;; d (continue disassembling from last address)
-;; 1000 a (assemble starting at, interactive until empty line) 
+;; 1000 a (assemble starting at, interactive until empty line)
 ;; x (exit monitor -- C64 only)
 ;; ? (commands help)
 ;; ?a (list instructions available)
@@ -93,7 +93,7 @@
 ;; _
 ;;
 ;; line editor version (Commodore) can revise address, and can overwrite input line with results of assembly
-;; and can cursor up to revise, 
+;; and can cursor up to revise,
 ;;
 ;; can also assume assembler mode on the fly regardless if line editor or raw terminal if see instruction name after address, so a command is superfluous
 ;;
@@ -141,20 +141,6 @@ flag=$fa
 ptr1=$fb ; and $fc
 ptr2=$fd ; and $fe
 tmp=$ff
-} else {
-opidx=$22
-inidx=$23
-mode=$24
-size=$25
-ptr3=$26 ; and $27
-count=$a3
-len=$a4
-savepos=$a5
-tmp2=$a6
-flag=$a7
-ptr1=$fb ; and $fc
-ptr2=$fd ; and $fe
-tmp=$ff
 }
 
 !ifdef MINIMUM {
@@ -172,7 +158,7 @@ tmp=$ff
     ldx #>brk64
     sta $316
     stx $317
-+   jsr install_nmi64   
++   jsr install_nmi64
 }
 
 start:
@@ -360,16 +346,28 @@ chksave:
 
 executesave:
     jsr newline
+    lda $22
+    pha
+    lda $23
+    pha
+    lda ptr1
+    sta $22
+    lda ptr1+1
+    sta $23
     lda #$c0 ; KERNAL control and error messages
     sta $9d ; set messages to be displayed
     lda #1
     ldx drive
     ldy #15
     jsr setlfs
-    lda #ptr1
+    lda #$22
     ldx ptr2
     ldy ptr2+1
     jsr fsave
+    pla
+    sta $23
+    pla
+    sta $22
     jmp newline
 }
 
@@ -393,7 +391,7 @@ disassemble:
     lda #23
     sta count
 -   ldy #0
-    lda (ptr1),y
+    jsr lda_at_ptr1_y
     jsr find_opcode
     jsr disp_current
     lda size
@@ -408,7 +406,7 @@ disassemble:
     bne -
 !ifdef C64SCREEN {
     jmp display_page_disassemble
-} else {    
+} else {
     rts
 }
 
@@ -488,7 +486,7 @@ disp_current:
     jsr charout
     ldy #0
     ldx size
--   lda (ptr1),y
+-   jsr lda_at_ptr1_y
     jsr disphexbyte
     lda #$20
     jsr charout
@@ -537,7 +535,7 @@ dispModeZP:
     lda #'$'
     jsr charout
     ldy #1
-    lda (ptr1),y
+    jsr lda_at_ptr1_y
     jmp disphexbyte
 
 dispModeIndX:
@@ -546,7 +544,7 @@ dispModeIndX:
     lda #'$'
     jsr charout
     ldy #1
-    lda (ptr1),y
+    jsr lda_at_ptr1_y
     jsr disphexbyte
     lda #','
     jsr charout
@@ -561,7 +559,7 @@ dispModeIndY:
     lda #'$'
     jsr charout
     ldy #1
-    lda (ptr1),y
+    jsr lda_at_ptr1_y
     jsr disphexbyte
     lda #')'
     jsr charout
@@ -581,7 +579,7 @@ dispModeRel:
     adc #0
     sta ptr3+1
     ldy #1
-    lda (ptr1),y
+    jsr lda_at_ptr1_y
     bpl +
     ; I'm not sure how to successfully navigate page boundries adding signed byte to unsigned byte, so I'm subtracting unsigned bytes instead
     eor #$FF ; inverse
@@ -622,10 +620,10 @@ dispModeAbs:
     lda #'$'
     jsr charout
     ldy #1
-    lda (ptr1),y
+    jsr lda_at_ptr1_y
     pha
     iny
-    lda (ptr1),y
+    jsr lda_at_ptr1_y
     tax
     pla
     jmp disphexword
@@ -756,9 +754,9 @@ inputhexnybble:
 strout:
     sta ptr3
     stx ptr3+1
-strout2:    
+strout2:
     ldy #0
--   lda (ptr3),y
+-   jsr lda_at_ptr3_y
     beq +
     jsr charout
     iny
@@ -789,7 +787,7 @@ inputline:
     cpy #0
     beq -
     dey
-!if NEEDECHO = 1 {    
+!if NEEDECHO = 1 {
     jsr charout
 }
     jmp --
@@ -800,7 +798,7 @@ inputline:
     cmp #128
     bcs -
 +
-!if NEEDECHO = 1 {    
+!if NEEDECHO = 1 {
     jsr charout
 }
     sta inputbuf,y
@@ -814,7 +812,7 @@ parseline:
     cpy #1
     bne +
 -
-!ifdef C64SCREEN {   
+!ifdef C64SCREEN {
     jmp newline
 } else {
     rts
@@ -852,7 +850,7 @@ parseline:
     jsr chkextrac64 ; check syntax only available on C64
     bcs + ; error if C set
     beq ++ ; consumed if Z set, skip next test(s)
-}    
+}
     jsr chkhexaddr1
     bne error
 ++  jmp executeaddr1
@@ -932,7 +930,7 @@ executedisplay12:
     sta count
 -   inc count
     lda count
-!ifdef MINIMUM {    
+!ifdef MINIMUM {
     and #$0f
 } else {
     and #$07
@@ -948,7 +946,7 @@ executedisplay12:
     lda #' '
     jsr charout
 +   ldy #0
-    lda (ptr1),y
+    jsr lda_at_ptr1_y
     jsr disphexbyte
     lda #' '
     jsr charout
@@ -975,7 +973,7 @@ executemodify:
     jmp error
 +   sty tmp
     ldy #0
-    sta (ptr1),y
+    jsr sta_at_ptr1_y
     inc ptr1
     bne +
     inc ptr1+1
@@ -1020,11 +1018,11 @@ chkload_a_x_y_s_p:
     cmp #'P'
     bne ++
 +   iny
-    lda inputbuf, y    
+    lda inputbuf, y
 !ifndef MINIMUM {
     cmp #$A0
     beq +
-}    
+}
     cmp #' '
     beq +
     cmp #':'
@@ -1038,7 +1036,7 @@ chkload_a_x_y_s_p:
     sta registerA, x
 !ifndef MINIMUM {
     jsr newline
-}    
+}
     ; pop call stack so return to input_loop
     pla
     pla
@@ -1091,9 +1089,9 @@ chkloadregisters:
     ; don't return to executedot
 +   pla
     pla
-!ifdef C64SCREEN {   
+!ifdef C64SCREEN {
     jsr newline
-}   
+}
     lda #0 ; set Z
 ++  rts
 
@@ -1162,14 +1160,14 @@ chkkeyword:
     stx ptr3+1
     ldx count
     ldy #0
--   lda inputbuf, x
-    cmp (ptr3),y
+-   jsr lda_at_ptr3_y
+    cmp inputbuf, x
     bne +
     inx
     iny
     cpx len
     bne -
-    lda (ptr3),y ; matched if end of string, will set Z
+    jsr lda_at_ptr3_y ; matched if end of string, will set Z
 +   php ; save Z
     ldy count
     plp ; restore Z
@@ -1256,16 +1254,16 @@ disp_modename_and_example:
 !ifdef C64SCREEN {
     lda #18
     jsr charout
-}    
+}
     pla
     jsr strout
     lda #' '
     jsr charout
     jsr strout2
-!ifdef C64SCREEN {    
+!ifdef C64SCREEN {
     lda #146
     jsr charout
-}   
+}
     rts
 
 disp_modename_instruction_example:
@@ -1320,7 +1318,7 @@ executehelpinstruction:
     rts
 
 continueassemble:
-!ifdef C64SCREEN {   
+!ifdef C64SCREEN {
     jsr continueassemblec64
 }
     ; continue...
@@ -1328,7 +1326,7 @@ continueassemble:
 executeassemble:
     pla ; remove low byte return address
     pla ; return high byte return address
-!ifdef C64SCREEN {    
+!ifdef C64SCREEN {
     lda #20
     jsr charout
     jsr charout
@@ -1374,7 +1372,7 @@ executeassemble:
     lda ptr3+1
     adc #0
     sta ptr1+1
-!ifdef C64SCREEN {    
+!ifdef C64SCREEN {
     jsr newline
 }
     lda ptr1
@@ -1383,7 +1381,7 @@ executeassemble:
     lda #' '
     jsr charout
     jmp --
-++  
+++
 !ifdef C64SCREEN {
     jmp newline
 } else {
@@ -1394,7 +1392,7 @@ store_assembly:
     ldx opidx
     lda opcodes, x
     ldy #0
-    sta (ptr3), y
+    jsr sta_at_ptr3_y
     iny
     ldx size
     cpx #1
@@ -1402,15 +1400,15 @@ store_assembly:
 +   cpx #2
     bne +
     lda tmp2
-    sta (ptr3), y
+    jsr sta_at_ptr3_y
     rts
 +   cpx #3
     bne ++
     lda ptr1
-    sta (ptr3), y
+    jsr sta_at_ptr3_y
     iny
     lda ptr1+1
-    sta (ptr3), y
+    jsr sta_at_ptr3_y
 ++  rts
 
 chkaddressing: ; match input to addressing mode, note caller may need to adjust
@@ -1456,7 +1454,7 @@ chkaddressing: ; match input to addressing mode, note caller may need to adjust
     jsr chkindirect
 +   php ; save Z
     lda mode
-    plp ; restore Z 
+    plp ; restore Z
     rts
 
 chkaccumulator:
@@ -1618,7 +1616,7 @@ computeoffset:
 chkoffsetto127:
     lda tmp2
     bmi failedoffset ; branch if too large an offset 128 bytes or more
-successoffset:    
+successoffset:
     lda #0 ; Z true (EQ)
     rts
 failedoffset:
@@ -2000,7 +1998,7 @@ chkhexbyte:
     rts
 +   pla
     tay ; won't be zero, so Z false (NE)
-    rts    
+    rts
 
 chkhexaddr2:
     lda ptr1
@@ -2022,7 +2020,7 @@ chkhexaddr2:
     pla
     sta ptr1
     lda #0 ; Z true (EQ)
-    rts    
+    rts
 
 chkbinbyte:
     ldx #8
@@ -2149,6 +2147,23 @@ display_registers:
     jmp newline
 
 !ifdef MINIMUM {
+
+lda_at_ptr1_y:
+    lda (ptr1),y
+    rts
+
+sta_at_ptr1_y:
+    sta (ptr1),y
+    rts
+
+lda_at_ptr3_y:
+    lda (ptr3),y
+    rts
+
+sta_at_ptr3_y:
+    sta (ptr3),y
+    rts
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; MC6850
 UART_DATA=$FFF8
@@ -2246,6 +2261,37 @@ RESET:
     jmp start
 ; !ifdef MINIMUM
 } else { ; not MINIMUM
+
+ptr1 = sta_at_ptr1_y + 1 ; and + 2
+
+lda_at_ptr1_y:
+    lda ptr1
+    sta lda_ptr1_op+1
+    lda ptr1+1
+    sta lda_ptr1_op+2
+lda_ptr1_op:
+    lda $ffff, y
+    rts
+
+sta_at_ptr1_y:
+    sta $ffff, y
+    rts
+
+ptr3 = sta_at_ptr3_y + 1 ; and + 2
+
+lda_at_ptr3_y:
+    lda ptr3
+    sta lda_ptr3_op+1
+    lda ptr3+1
+    sta lda_ptr3_op+2
+lda_ptr3_op:
+    lda $ffff, y
+    rts
+
+sta_at_ptr3_y:
+    sta $ffff, y
+    rts
+
 nmi64:
     sei
     sta registerA
@@ -2373,7 +2419,7 @@ opcodes !byte $00,$01,$05,$06,$08,$09,$0A,$0D,$0E,$10,$11,$15,$16,$18,$19,$1D,$1
 instidx !byte $0A,$22,$22,$02,$24,$22,$02,$22,$02,$09,$22,$22,$02,$0D,$22,$22,$02,$1C,$01,$06,$01,$27,$26,$01,$27,$06,$01,$27,$07,$01,$01,$27,$2C,$01,$01,$27,$29,$17,$17,$20,$23,$17,$20,$1B,$17,$20,$0B,$17,$17,$20,$0F,$17,$17,$20,$2A,$00,$00,$28,$25,$00,$28,$1B,$00,$28,$0C,$00,$00,$28,$2E,$00,$00,$28,$2F,$31,$2F,$30,$16,$35,$31,$2F,$30,$03,$2F,$31,$2F,$30,$37,$2F,$36,$2F,$1F,$1D,$1E,$1F,$1D,$1E,$33,$1D,$32,$1F,$1D,$1E,$04,$1D,$1F,$1D,$1E,$10,$1D,$34,$1F,$1D,$1E,$13,$11,$13,$11,$14,$1A,$11,$15,$13,$11,$14,$08,$11,$11,$14,$0E,$11,$11,$14,$12,$2B,$12,$2B,$18,$19,$2B,$21,$12,$2B,$18,$05,$2B,$2B,$18,$2D,$2B,$2B,$18
 modeidx !byte $01,$03,$06,$06,$01,$02,$00,$09,$09,$05,$04,$07,$07,$01,$0B,$0A,$0A,$09,$03,$06,$06,$06,$01,$02,$00,$09,$09,$09,$05,$04,$07,$07,$01,$0B,$0A,$0A,$01,$03,$06,$06,$01,$02,$00,$09,$09,$09,$05,$04,$07,$07,$01,$0B,$0A,$0A,$01,$03,$06,$06,$01,$02,$00,$0C,$09,$09,$05,$04,$07,$07,$01,$0B,$0A,$0A,$03,$06,$06,$06,$01,$01,$09,$09,$09,$05,$04,$07,$07,$08,$01,$0B,$01,$0A,$02,$03,$02,$06,$06,$06,$01,$02,$01,$09,$09,$09,$05,$04,$07,$07,$08,$01,$0B,$01,$0A,$0A,$0B,$02,$03,$06,$06,$06,$01,$02,$01,$09,$09,$09,$05,$04,$07,$07,$01,$0B,$0A,$0A,$02,$03,$06,$06,$06,$01,$02,$01,$09,$09,$09,$05,$04,$07,$07,$01,$0B,$0A,$0A
 
-copyright 
+copyright
 ;                  1         2         3         4
 ;         1234567890123456789012345678901234567890
 !text 13,"6502 MONITOR AND MINI-ASSEMBLER"
@@ -2441,6 +2487,17 @@ registerSP = $dffc
 registerSR = $dffd
 registerPC = $dffe;/f
 } else {
+opidx !byte 0
+inidx !byte 0
+mode !byte 0
+size !byte 0
+count !byte 0
+len !byte 0
+savepos !byte 0
+tmp2 !byte 0
+flag !byte 0
+tmp !byte 0
+ptr2 !word 0
 savebrkvector !word 0
 savenmivector !word 0
 drive !byte 0
@@ -2462,7 +2519,7 @@ JUART_IN: JMP UART_IN
 JUART_CHK: JMP UART_CHK
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-; 6502 vectors 
+; 6502 vectors
 * = $fffa
     !word NMI
     !word RESET
