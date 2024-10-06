@@ -128,19 +128,8 @@ fsave =$ffd8
 
 ; zeropage
 !ifdef MINIMUM {
-opidx=$f0
-inidx=$f1
-mode=$f2
-size=$f3
-ptr3=$f4 ; and $f5
-count=$f6
-len=$f7
-savepos=$f8
-tmp2=$f9
-flag=$fa
-ptr1=$fb ; and $fc
-ptr2=$fd ; and $fe
-tmp=$ff
+ptr1=$fc ; and $fd
+ptr3=$fe ; and $ff
 }
 
 !ifdef MINIMUM {
@@ -2488,6 +2477,17 @@ modes_keyword !text "MODE", 0
 reg_header !text " PC   NV-BDIZC .A .X .Y .S", 13, '.', 0
 
 !ifdef MINIMUM {
+opidx=$dfed
+inidx=$dfee
+mode=$dfef
+size=$dff0
+count=$dff1
+len=$dff2
+savepos=$dff3
+tmp2=$dff4
+flag=$dff5
+ptr2=$dff6;/7
+tmp=$dff8
 registerA = $dff9
 registerX = $dffa
 registerY = $dffb
