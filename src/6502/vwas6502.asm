@@ -2531,11 +2531,15 @@ registerPC !word 0
 !ifdef MINIMUM {
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; JUMP table for some stability
-* = $FFEE
+* = $FFEB
+JUART_CHK: JMP UART_CHK
 JUART_INIT: JMP UART_INIT
 JUART_OUT: JMP UART_OUT
 JUART_IN: JMP UART_IN
-JUART_CHK: JMP UART_CHK
+
+!if * > $fff8 {
+    !error "code overran MC6850 UART"
+}
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; 6502 vectors

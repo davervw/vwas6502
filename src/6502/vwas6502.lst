@@ -2533,22 +2533,26 @@
   2531                          !ifdef MINIMUM {
   2532                          ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   2533                          ; JUMP table for some stability
-  2534                          * = $FFEE
-  2535                          JUART_INIT: JMP UART_INIT
-  2536                          JUART_OUT: JMP UART_OUT
-  2537                          JUART_IN: JMP UART_IN
-  2538                          JUART_CHK: JMP UART_CHK
+  2534                          * = $FFEB
+  2535                          JUART_CHK: JMP UART_CHK
+  2536                          JUART_INIT: JMP UART_INIT
+  2537                          JUART_OUT: JMP UART_OUT
+  2538                          JUART_IN: JMP UART_IN
   2539                          
-  2540                          ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-  2541                          ; 6502 vectors
-  2542                          * = $fffa
-  2543                              !word NMI
-  2544                              !word RESET
-  2545                              !word IRQ
-  2546                          } else { // C64
-  2547                              !if * > $a000 {
-  2548                                  !error "code/data overran $a000"
-  2549                              }
-  2550                          }
-  2551                          
-  2552                          finish = *
+  2540                          !if * > $fff8 {
+  2541                              !error "code overran MC6850 UART"
+  2542                          }
+  2543                          
+  2544                          ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+  2545                          ; 6502 vectors
+  2546                          * = $fffa
+  2547                              !word NMI
+  2548                              !word RESET
+  2549                              !word IRQ
+  2550                          } else { // C64
+  2551                              !if * > $a000 {
+  2552                                  !error "code/data overran $a000"
+  2553                              }
+  2554                          }
+  2555                          
+  2556                          finish = *
