@@ -134,9 +134,11 @@ ptr3=$fe ; and $ff
 
 !ifdef MINIMUM {
 * = $e000
+first:
     jmp start
 } else { // any C64
 * = $8000
+first:
     jmp init64
 }
 
@@ -171,7 +173,16 @@ init64:
     sta $316
     stx $317
 +   jsr install_nmi64
-    ; fall through to start
+    ; check if BASIC RAM limited to exclude monitor
+    lda 56
+    cmp #>first
+    beq +
+    bcc +
+    lda #>first
+    sta 56
+    lda #0
+    sta 55
++   ; fall through to start
 }
 
 start:
