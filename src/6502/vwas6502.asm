@@ -6,7 +6,7 @@
 ;; >>>       **           TARGETS:                              *        <<<
 ;; >>>       ** (1)  C64 8000-9FFF screen editor                *        <<<
 ;; >>>       ** (2)  C64 8000-9FFF terminal edition             *        <<<
-;; >>>       ** (3)  6502+MC6850 minimum system                 *        <<<
+;; >>>       ** (3)  6502+MC6850 E000-FFFF minimum system       *        <<<
 ;; >>>       *   56K(RAM),8K(ROM), 2 bytes IO for MC6850 UART   *        <<<
 ;; >>>       ****************************************************        <<<
 ;;
@@ -145,8 +145,31 @@ tmp=$ff
 
 !ifdef MINIMUM {
 * = $e000
+    jmp start
 } else { // any C64
 * = $8000
+    jmp init64
+}
+
+test: ; all the addressing modes here for testing disassembly
+    nop
+    lda $1234
+    lda $1234,x
+    lda $1234,y
+    asl
+    lda #$12
+    lda ($12,x)
+    lda ($12),y
+    jmp ($1234)
+-   bne -
+    lda $12
+    lda $12,x
+    ldx $12,y
+    !byte $FF ; unknown
+
+!ifndef MINIMUM {
+    ; any C64
+init64:    
     ; check if irq/brk vector installed
     lda $316
     ldx $317
@@ -159,6 +182,7 @@ tmp=$ff
     sta $316
     stx $317
 +   jsr install_nmi64
+    ; fall through to start
 }
 
 start:
@@ -370,22 +394,6 @@ executesave:
     sta $22
     jmp newline
 }
-
-; test: ; all the addressing modes here for testing disassembly
-;     nop
-;     lda $1234
-;     lda $1234,x
-;     lda $1234,y
-;     asl
-;     lda #$12
-;     lda ($12,x)
-;     lda ($12),y
-;     jmp ($1234)
-; -   bne -
-;     lda $12
-;     lda $12,x
-;     ldx $12,y
-;     !byte $FF ; unknown
 
 disassemble:
     lda #23
