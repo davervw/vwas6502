@@ -196,6 +196,13 @@ start:
     lda #<firsthelp
     ldx #>firsthelp
     jsr strout
+    lda #1
+    clv
+    php
+    lda #0
+    tax
+    tay
+    plp
     jmp save_registers
 
 input_loop:
