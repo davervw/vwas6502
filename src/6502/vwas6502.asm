@@ -60,6 +60,8 @@
 ;; 1000 d (disassemble starting at address, for screenful)
 ;; d (continue disassembling from last address)
 ;; 1000 a (assemble starting at, interactive until empty line)
+;; a (continue assembling from last address)
+;; r (run from PC)
 ;; x (exit monitor -- C64 only)
 ;; ? (commands help)
 ;; ?a (list instructions available)
@@ -847,7 +849,8 @@ parseline:
 +   jsr chkcontinueasm
     bne +
     jsr continueassemble ; note won't return
-+   jsr chkdot
++   jsr chkexecutepc ; not won't return
+    jsr chkdot
     bne +
     jmp executedot
 +   jsr chkhelp
@@ -864,6 +867,16 @@ parseline:
 ++  jmp executeaddr1
 error:
     jmp reporterr
+
+chkexecutepc:
+    lda inputbuf, y
+    cmp #'R'
+    bne +
+    lda inputbuf+1, y
+    cmp #13
+    bne +
+    jmp executerun
++   rts
 
 executeaddr1:
     cpy len
@@ -2076,6 +2089,10 @@ chkaddr1cmd:
     cpx #13
     bne +
     iny
+    lda registerPC
+    sta ptr1
+    lda registerPC+1
+    sta ptr1+1
     jmp executerun
 +   rts
 

@@ -25,7 +25,8 @@ Monitor with mini-assembler and disassembler
 ``.1234 11111111`` modify PC and flags only, etc.
 
 ## Run
-``1000 R`` run program (JMP)
+``1000 R`` run program (JMP)  
+``R`` run from current PC (JMP)
 
 ## Assemble
 ``1000 A`` assemble at address  
