@@ -1891,7 +1891,7 @@ executerun:
     ldx registerX
     ldy registerY
     plp
-    jmp (ptr1)
+    jmp (registerPC)
 
 chkcontinuedis:
     lda inputbuf,y
@@ -2096,10 +2096,10 @@ chkaddr1cmd:
     cpx #13
     bne +
     iny
-    lda registerPC
-    sta ptr1
-    lda registerPC+1
-    sta ptr1+1
+    lda ptr1
+    sta registerPC
+    lda ptr1+1
+    sta registerPC+1
     jmp executerun
 +   rts
 

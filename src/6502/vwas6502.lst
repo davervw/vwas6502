@@ -1893,7 +1893,7 @@
   1891  8c4f ae4495                 ldx registerX
   1892  8c52 ac4595                 ldy registerY
   1893  8c55 28                     plp
-  1894  8c56 6c2e8e                 jmp (ptr1)
+  1894  8c56 6c4895                 jmp (registerPC)
   1895                          
   1896                          chkcontinuedis:
   1897  8c59 b90002                 lda inputbuf,y
@@ -2098,10 +2098,10 @@
   2096  8d99 e00d                   cpx #13
   2097  8d9b d010                   bne +
   2098  8d9d c8                     iny
-  2099  8d9e ad4895                 lda registerPC
-  2100  8da1 8d2e8e                 sta ptr1
-  2101  8da4 ad4995                 lda registerPC+1
-  2102  8da7 8d2f8e                 sta ptr1+1
+  2099  8d9e ad2e8e                 lda ptr1
+  2100  8da1 8d4895                 sta registerPC
+  2101  8da4 ad2f8e                 lda ptr1+1
+  2102  8da7 8d4995                 sta registerPC+1
   2103  8daa 4c3a8c                 jmp executerun
   2104  8dad 60                 +   rts
   2105                          
