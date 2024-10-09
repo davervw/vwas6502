@@ -91,13 +91,7 @@
 ;; 1006 _
 ;;      XYZ
 ;;      XYZ ?
-;; 1006 _
 ;; _
-;;
-;; line editor version (Commodore) can revise address, and can overwrite input line with results of assembly
-;; and can cursor up to revise,
-;;
-;; can also assume assembler mode on the fly regardless if line editor or raw terminal if see instruction name after address, so a command is superfluous
 ;;
 
 ; global
