@@ -67,6 +67,7 @@
 ;; ?a (list instructions available)
 ;; ?adc (assembler addressing modes examples for a specific instruction, replace adc with desired instruction)
 ;; ?mode (show addressing modes example syntax for 6502)
+;; 1000 "filename" 08 l (load absolute, address optional, drive address is optional)
 ;; 1000.2000 "filename" 08 s (C64: save range of bytes from $1000 up to not including $2000, Commodore drive address is optional, defaults to 8)
 ;; .? (display registers in format .1234 10110000 01 02 03 f6)
 ;; .1234 10110000 01 02 03 f6 (set registers PC FLAGS A X Y S)
@@ -76,7 +77,6 @@
 ;; 1000.2000 A9 FF ? (search for byte sequence in address range inclusive)
 ;; 1000.2000 3000 m (move bytes $1000-$2000 inclusive to $3000, left/right move as appropriate)
 ;; 1000.2000: 01 02 03 (fill bytes to inclusive address range)
-;; 1000 "filename" 08 load (load absolute, address optional, drive address is optional, can abbreviate to l)
 ;;
 ;; (INTERACTIVE ASSEMBLER)
 ;; 1000 _
@@ -116,6 +116,7 @@ setlfs=$ffba
 setnam=$ffbd
 charin=$ffcf ; screen editor
 charout=$ffd2
+fload =$ffd5
 fsave =$ffd8
 getkey=$ffe4
 }
@@ -360,6 +361,19 @@ check_execute_save:
     ldx #0 ; set Z true
 +   rts
 
+check_execute_load:
++   jsr chkfilename
+    beq +
+    jsr reporterr
+    ldx #1 ; set Z false
+    rts
++   jsr chkoptionaldrive
+    jsr chkload
+    bne +
+    jsr executeload
+    ldx #0 ; set Z true
++   rts
+
 chkoptionaldrive:
     lda #8
     sta drive
@@ -375,6 +389,12 @@ chksave:
     jsr skipspaces
     lda inputbuf, y
     cmp #'S'
+    rts
+
+chkload:
+    jsr skipspaces
+    lda inputbuf, y
+    cmp #'L'
     rts
 
 executesave:
@@ -401,6 +421,19 @@ executesave:
     sta $23
     pla
     sta $22
+    jmp newline
+
+executeload:
+    jsr newline
+    lda #$c0 ; KERNAL control and error messages
+    sta $9d ; set messages to be displayed
+    lda #0 ; load
+    ldx drive
+    ldy #1 ; force load at address
+    jsr setlfs
+    ldx ptr1
+    ldy ptr1+1
+    jsr fload
     jmp newline
 }
 
@@ -906,9 +939,9 @@ executeaddr1:
 !ifdef MINIMUM {
     jmp reportnotimplemented
 } else {
-    jsr chkfilename
+    jsr check_execute_load
     bne error
-    jmp executeloadfilename
+    rts
 }
 
 executepagedisplay:
@@ -1016,10 +1049,6 @@ executedot:
 +   jsr chkloadregister
     bne +
 +   jsr chkloadregisters
-
-executeloadfilename:
-executeaddr1cmd:
-+   jmp reportnotimplemented
 
 chkloadregister:
     jsr chkload_a_x_y_s_p
@@ -2472,7 +2501,8 @@ firsthelp
 ; C64 only
 extra_help:
     !text "X           (EXIT MONITOR)", 13
-    !text "1000.2000 ", 34, "FILENAME", 34, " 08 S  (SAVE)", 13
+    !text "1000 ", 34, "FILENAME", 34, " 08 L             (LOAD)", 13
+    !text "1000.2000 ", 34, "FILENAME", 34, " 08 S        (SAVE)", 13
     !text 0
 
 !ifdef C64SCREEN {

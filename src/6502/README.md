@@ -38,7 +38,8 @@ Monitor with mini-assembler and disassembler
 
 ## C64 only
 ``X`` exit, e.g. to BASIC  
-``1000.2000 "FILENAME" 08 S`` save range of memory exclusive of ending address to filename and (optional) device number  
+``1000 "FILENAME" 08 L`` load into memory from filename and (optional) device number    
+``1000.2000 "FILENAME" 08 S`` save range of memory exclusive of ending address to filename and (optional) device number
 
 ## Help
 ``?`` show syntax of commands available  
