@@ -14,6 +14,7 @@ Monitor with mini-assembler and disassembler
 ``1000`` display memory byte contents  
 ``1000.100F`` display memory range contents  
 ``1000.`` display screenfull of memory  
+``1000=`` conversion to decimal, hex, and binary  
 ``.`` display next screenfull of memory  
 ``?.`` display PC, flags, and registers
 

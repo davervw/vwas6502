@@ -72,6 +72,7 @@
 ;; .? (display registers in format .1234 10110000 01 02 03 f6)
 ;; .1234 10110000 01 02 03 f6 (set registers PC FLAGS A X Y S)
 ;; .A:00 (change register, replace A with X, Y, S, P as appropriate, use space or colon as separator)
+;; 1234 = (display number as decimal, hex, and binary)
 ;; (FUTURE SYNTAX, not implemented)
 ;; 1000.2000 "text" ? (search for text in address range inclusive)
 ;; 1000.2000 A9 FF ? (search for byte sequence in address range inclusive)
@@ -793,6 +794,29 @@ inputhexnybble:
 +   iny
     rts
 ++  sec
+    rts
+
+dispdecword:
+    ldy #4
+    sty len
+-   ldy #10
+    jsr divaxwithy
+    pha
+    lda remainl
+    ldy len
+    sta inputbuf,y
+    dec len
+    pla
+    bne -
+    cpx #0
+    bne -
+    ldy len
+-   iny
+    lda inputbuf,y
+    ora #'0'
+    jsr charout
+    cpy #4
+    bcc -
     rts
 
 strout:
@@ -2124,6 +2148,9 @@ chkaddr1cmd:
     lda ptr1+1
     sta registerPC+1
     jmp executerun
++   cmp #'='
+    bne +
+    jmp executevalues
 +   rts
 
 newline:
@@ -2200,6 +2227,131 @@ display_registers:
     lda registerSP
     jsr disphexbyte
     jmp newline
+
+executevalues:
+    pla ; pull return address, so will return to parse's caller instead
+    pla
+!ifndef MINIMUM {
+    jsr newline
+}
+    lda #'+'
+    jsr charout
+    lda ptr1
+    ldx ptr1+1
+    jsr dispdecword
+    jsr newline
+    lda #'$'
+    jsr charout
+    lda ptr1
+    ldx ptr1+1
+    jsr disphexword
+    jsr newline
+    lda #'%'
+    jsr charout
+    lda ptr1+1
+    jsr dispbinbyte
+    lda ptr1
+    jsr dispbinbyte
+    jmp newline
+
+;divide by shift/subtract
+;input: a (low), x (high), y (divisor)
+;output: a (low), x (high), remainder in global remainl/remainh
+;algorithm: 
+; shift contains bit (0 to 15, starts right-most [1]) to add to answer in sum (starts at 0)
+; y saved to divisor (16-bit), shifted in loop to match shift
+; workarea starts with a/x, subtracted by shift as appropriate, reduced to remainder
+; shift advanced to left as high as possible at first, then shifted right as loops, until shifts out
+
+divaxwithy:
+; initialize members
+    sty divisorl
+    ldy #0
+    sty divisorh
+    sty shiftl
+    inc shiftl
+    sty shifth
+    sty suml
+    sty sumh
+    sta remainl
+    stx remainh
+
+    ; x is high byte of workarea
+    cpx divisorh
+    bcc ++ ; branch if workarea < shift, already done
+    bne + ; branch if workarea > shift
+    ; high bytes equal
+    ; a is low byte of workarea
+    cmp divisorl
+    bcc ++ ; branch if workarea < shift, already done
+    beq +++ ; workarea == shift, guaranteed we have the right shift bit to work with   
+    ; workarea > shift, so shift some more
++
+-   asl shiftl
+    rol shifth
+    bcs ++++ ; shifted too far, bit 16 fell out of shift
+    asl divisorl
+    rol divisorh
+    bcs +++++ ; shifted too far, divisor shifted out
+    ; x is high byte of workarea
+    cpx divisorh
+    bcs +
+    ; shifted too far
++++++
+--
+    ror divisorh
+    ror divisorl
+    bcc ++++
+    brk ; shouldn't happen
++   bne - ; branch if remain > than shift
+    ; low bytes equal
+    ; a is low byte of workarea
+    cmp divisorl
+    bcc -- ; remain < remain, shifted too far
+    bne - ; remain > shift, so shift some more
+    beq +++ ; workarea == shift, guaranteed we have the right shift bit to work with   
+    brk ; assert should never get here
+
+    ; shifted too far, carry set only if rotated out of high byte
+++++
+    ror shifth
+    ror shiftl
+    bcs + ; lowest bit shifted out, nothing more to do
+
++++ ; shift is just right, add to sum, subtract from workarea 
+--  lda shiftl
+    ora suml
+    sta suml
+    lda shifth
+    ora sumh
+    sta sumh
+    sec
+    lda remainl
+    sbc divisorl
+    sta remainl
+    lda remainh
+    sbc divisorh
+    sta remainh
+++  lda remainl ; restore .A
+    ldx remainh ; restore .X
+-   lsr divisorh
+    ror divisorl
+    lsr shifth
+    ror shiftl
+    bcs + ; done
+    cpx divisorh
+    bcc - ; remain < divisor
+    bne -- ; branch if remain > divisor
+    ; low bytes equal
+    ; a is low byte of workarea
+    cmp divisorl
+    bcc - ; remain < divisor
+    bcs -- ; branch if remain >= divisor
+    brk ; not possible to get here
+
++   lda suml
+    ldx sumh
+    rts
 
 !ifdef MINIMUM {
 
@@ -2536,6 +2688,14 @@ modes_keyword !text "MODE", 0
 reg_header !text " PC   NV-BDIZC .A .X .Y .S", 13, '.', 0
 
 !ifdef MINIMUM {
+divisorl=$dfe5
+divisorh=$dfe6
+shiftl=$dfe7
+shifth=$dfe8
+remainl=$dfe9
+remainh=$dfea
+suml=$dfeb
+sumh=$dfec
 opidx=$dfed
 inidx=$dfee
 mode=$dfef
@@ -2554,6 +2714,14 @@ registerSP = $dffc
 registerSR = $dffd
 registerPC = $dffe;/f
 } else {
+divisorl !byte 0
+divisorh !byte 0
+shiftl !byte 0
+shifth !byte 0
+remainl !byte 0
+remainh !byte 0
+suml !byte 0
+sumh !byte 0
 opidx !byte 0
 inidx !byte 0
 mode !byte 0
